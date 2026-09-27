@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04BD4E0AF4133B5F100B2295 /* LicenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCDAA10556C46F5C0C0705F7 /* LicenseManager.swift */; };
 		1302835FE2DEC97FC50C7FEA /* WhisperKitEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C553187D0CE89CA76136045E /* WhisperKitEngine.swift */; };
 		1B82091D1E849A97E59F7632 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 719B2757F1041A3D771C66ED /* Assets.xcassets */; };
 		29C00871617F7E53026A64DE /* HotKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E28E3C5D1EC373374C7D18 /* HotKeys.swift */; };
@@ -32,6 +33,7 @@
 		F0CF8AC399CF1B9CB10E4775 /* WhisperKitEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C553187D0CE89CA76136045E /* WhisperKitEngine.swift */; };
 		F276AFE4A0328FDBB6409D5B /* SpeechToText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E66D6FDA3EE85BD826D379C /* SpeechToText.swift */; };
 		F3D938134E2B817CD5C992E0 /* LocalServerSTTEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203821E11885FCB9A72E5813 /* LocalServerSTTEngine.swift */; };
+		F615747210F53EA54AE8BD15 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 65A17667C85995BFF42EA4DD /* Sparkle */; };
 		FD88F82548764CE3C7428FE1 /* SayTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07669D1DAD103770A3DC26E2 /* SayTypeTests.swift */; };
 		FF12D79124F88ED147E3A71E /* Vocabulary.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9F1BC105E2404CEA5598CB /* Vocabulary.swift */; };
 		FFFFC58842148784F0CB4DB3 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD28D69B1D3FE0CA083A873 /* Settings.swift */; };
@@ -59,6 +61,7 @@
 		C553187D0CE89CA76136045E /* WhisperKitEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperKitEngine.swift; sourceTree = "<group>"; };
 		C66B066FC6094F05DBDD9A32 /* SayTypeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SayTypeApp.swift; sourceTree = "<group>"; };
 		C75A4F8D8E004F2147F022B0 /* AppController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppController.swift; sourceTree = "<group>"; };
+		CCDAA10556C46F5C0C0705F7 /* LicenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseManager.swift; sourceTree = "<group>"; };
 		F85DB53C718B7976CC62861D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FE31962B304009A880C95D5D /* TextToSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeech.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -78,6 +81,7 @@
 			files = (
 				4BA3796CCF417F5FEC354FCA /* WhisperKit in Frameworks */,
 				3F244B777318E3634A3E2AD9 /* TTSKit in Frameworks */,
+				F615747210F53EA54AE8BD15 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +104,7 @@
 				BC6E2D1B0A7B2B01437F231A /* Audio */,
 				700BB385F2F973E7196EFC2B /* Focus */,
 				65CA1B8E816475EBF5E87DCC /* Insertion */,
+				28C2DDE79C7910E258D41638 /* Licensing */,
 				27B03CE4E74F0D1CF4DAAB0D /* Resources */,
 				46CDACD366A1545A7C2DE69B /* STT */,
 				E6CD5FC5A9AA1562ADD1659D /* Support */,
@@ -116,6 +121,14 @@
 				719B2757F1041A3D771C66ED /* Assets.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		28C2DDE79C7910E258D41638 /* Licensing */ = {
+			isa = PBXGroup;
+			children = (
+				CCDAA10556C46F5C0C0705F7 /* LicenseManager.swift */,
+			);
+			path = Licensing;
 			sourceTree = "<group>";
 		};
 		46CDACD366A1545A7C2DE69B /* STT */ = {
@@ -236,6 +249,7 @@
 			packageProductDependencies = (
 				92BA7080187CF2650BD6D28F /* WhisperKit */,
 				6D0E12BF765A007BB26A5BB2 /* TTSKit */,
+				65A17667C85995BFF42EA4DD /* Sparkle */,
 			);
 			productName = SayType;
 			productReference = 257A891C9FBCA5B3FF9AE942 /* SayType.app */;
@@ -290,6 +304,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				120679236D054BFC8C52F689 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+				33A91FF3E8110C79F5FADE8F /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D63920C6F46019D5D84996C /* Products */;
@@ -337,6 +352,7 @@
 				80BC4DA0B08694906F004253 /* AudioCapture.swift in Sources */,
 				2ED771AE3C510D33672D40F4 /* FocusMonitor.swift in Sources */,
 				29C00871617F7E53026A64DE /* HotKeys.swift in Sources */,
+				04BD4E0AF4133B5F100B2295 /* LicenseManager.swift in Sources */,
 				5CBCA028B9D56D9DE4447121 /* LocalServerSTTEngine.swift in Sources */,
 				C9C87F2E5121637D1B6856EB /* MenuView.swift in Sources */,
 				75C4D6E7206F2F6DA34EEB75 /* OnboardingView.swift in Sources */,
@@ -688,9 +704,22 @@
 				minimumVersion = 1.1.0;
 			};
 		};
+		33A91FF3E8110C79F5FADE8F /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		65A17667C85995BFF42EA4DD /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 33A91FF3E8110C79F5FADE8F /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		6D0E12BF765A007BB26A5BB2 /* TTSKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 120679236D054BFC8C52F689 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;

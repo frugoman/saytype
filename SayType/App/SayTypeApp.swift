@@ -1,3 +1,4 @@
+import Sparkle
 import SwiftUI
 
 @main
@@ -7,23 +8,31 @@ struct SayTypeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView()
+            MenuView(updater: appDelegate.updater.updater)
                 .environmentObject(controller)
                 .environmentObject(controller.focus)
+                .environmentObject(LicenseManager.shared)
         } label: {
             MenuBarIcon(status: controller.status)
         }
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView()
+            SettingsView(updater: appDelegate.updater.updater)
                 .environmentObject(controller)
                 .environmentObject(controller.vocabulary)
+                .environmentObject(LicenseManager.shared)
         }
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, SPUStandardUserDriverDelegate {
+    /// Sparkle: checks the appcast daily and installs signed updates.
+    private(set) lazy var updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: self)
+
+    // Menu bar apps show update notices without stealing focus.
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppController.shared.start()
         if !OnboardingWindow.isComplete || AppController.shared.needsSetup {
@@ -47,7 +56,7 @@ struct MenuBarIcon: View {
         case .hearing, .transcribing: return "waveform"
         case .speaking: return "speaker.wave.2.fill"
         case .disabled: return "mic.slash"
-        case .needsMicPermission, .needsAccessibility, .error: return "exclamationmark.triangle"
+        case .needsMicPermission, .needsAccessibility, .error, .trialExpired: return "exclamationmark.triangle"
         }
     }
 }

@@ -1,8 +1,11 @@
+import Sparkle
 import SwiftUI
 
 struct MenuView: View {
     @EnvironmentObject var controller: AppController
     @EnvironmentObject var focus: FocusMonitor
+    @EnvironmentObject var license: LicenseManager
+    let updater: SPUUpdater
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
@@ -17,6 +20,15 @@ struct MenuView: View {
             }
 
             statusRow
+
+            if case .trial(let days) = license.state {
+                HStack {
+                    Text("Free trial: \(days) day\(days == 1 ? "" : "s") left").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Buy SayType") { NSWorkspace.shared.open(LicenseConfig.checkoutURL) }
+                        .buttonStyle(.link).font(.caption)
+                }
+            }
 
             if !controller.lastTranscript.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
@@ -47,7 +59,13 @@ struct MenuView: View {
                     NSApp.activate(ignoringOtherApps: true)
                     openSettings()
                 }
-                Button("Setup…") { OnboardingWindow.shared.show() }
+                Menu("More") {
+                    Button("Setup…") { OnboardingWindow.shared.show() }
+                    Button("Check for Updates…") { updater.checkForUpdates() }
+                    Button("Website") { NSWorkspace.shared.open(URL(string: "https://frugoman.github.io/saytype-site/")!) }
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
                 Spacer()
                 Button("Quit") { NSApp.terminate(nil) }
             }
@@ -73,6 +91,19 @@ struct MenuView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("SayType needs microphone access.").font(.callout)
                 Button("Finish Setup…") { OnboardingWindow.shared.show() }
+            }
+        case .trialExpired:
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Your free trial has ended. Buy SayType to keep dictating. Your settings and words are saved.")
+                    .font(.callout)
+                HStack {
+                    Button("Buy SayType") { NSWorkspace.shared.open(LicenseConfig.checkoutURL) }
+                        .buttonStyle(.borderedProminent)
+                    Button("Enter License Key…") {
+                        NSApp.activate(ignoringOtherApps: true)
+                        openSettings()
+                    }
+                }
             }
         case .error(let message):
             VStack(alignment: .leading, spacing: 6) {

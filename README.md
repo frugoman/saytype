@@ -52,7 +52,12 @@ On first launch grant **Microphone** and **Accessibility** access (System Settin
 Security). The model downloads once (~630 MB) and is optimized for your Mac (a few minutes the
 first time).
 
-## Mac App Store notes
+## Distribution
+
+Sold directly (not the Mac App Store: the App Sandbox blocks reading other apps' text fields).
+See [docs/RELEASING.md](docs/RELEASING.md). `./install.sh` installs the unsandboxed **Direct** build locally.
+
+## Mac App Store notes (sandboxed Release config, currently not viable)
 
 - Already sandboxed (entitlements: sandbox, microphone, outgoing network for model downloads
   and localhost servers). Signed with team `VQDNM3C2SW`.

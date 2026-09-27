@@ -30,5 +30,13 @@
 	<string></string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>SayType listens while a text field is focused and turns your speech into text. Audio never leaves your Mac.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://frugoman.github.io/saytype-site/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>9XQ2SvFlOgGmlbdHxrbvZYqgHmGgddSUumfMy3rknh4=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
 </dict>
 </plist>
