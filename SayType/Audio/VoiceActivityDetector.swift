@@ -20,6 +20,7 @@ final class VoiceActivityDetector {
     var config = Config()
     var onSpeechStart: (() -> Void)?
     var onUtterance: (([Float]) -> Void)?
+    var onDebug: ((String) -> Void)?
     /// Current input level in dBFS, for a UI meter.
     private(set) var levelDB: Float = -90
 
@@ -30,6 +31,9 @@ final class VoiceActivityDetector {
     private let preRollFrames = 10 // 300 ms kept from before speech was detected
 
     private var noiseFloor: Float = -60
+    private var speechPeak: Float = -90
+    /// How far (dB) below the speaker's recent loudness still counts as speech.
+    private var pauseDrop: Float { Float(22 - 8 * config.sensitivity) }
     private var speaking = false
     private var voicedRun = 0
     private var silenceRun = 0
@@ -81,11 +85,17 @@ final class VoiceActivityDetector {
         }
 
         utterance.append(contentsOf: frame)
-        if db > noiseFloor + keepDelta && db > absoluteMin {
+        // Track how loud the speaker is; a clear drop below that counts as a pause even in noisy
+        // rooms where background sound never falls back to the pre-speech noise floor.
+        speechPeak = max(db, speechPeak - 0.02)
+        let voiced = db > noiseFloor + keepDelta && db > absoluteMin && db > speechPeak - pauseDrop
+        if voiced {
             silenceRun = 0
             voicedFrames += 1
         } else {
             silenceRun += 1
+            // Let the floor follow steady background noise during long speech.
+            noiseFloor += (db - noiseFloor) * 0.02
         }
 
         let silence = Double(silenceRun) * frameDuration
@@ -110,6 +120,7 @@ final class VoiceActivityDetector {
         voicedFrames = voicedRun
         voicedRun = 0
         utterance = preRoll.flatMap { $0 }
+        speechPeak = levelDB
         preRoll.removeAll()
         onSpeechStart?()
     }
@@ -131,6 +142,7 @@ final class VoiceActivityDetector {
         silenceRun = 0
         voicedFrames = 0
 
+        onDebug?("utterance \(String(format: "%.1f", Double(audio.count) / AudioCapture.sampleRate))s voiced \(String(format: "%.1f", voicedSeconds))s forced \(wasForced) floor \(Int(noiseFloor))dB peak \(Int(speechPeak))dB")
         if voicedSeconds >= config.minVoiced {
             onUtterance?(audio)
         }

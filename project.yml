@@ -1,4 +1,8 @@
 name: SayType
+configs:
+  Debug: debug
+  Release: release
+  Direct: release
 options:
   bundleIdPrefix: com.nicolasfrugoni
   deploymentTarget:
@@ -25,12 +29,6 @@ targets:
         product: WhisperKit
       - package: ArgmaxOSS
         product: TTSKit
-    entitlements:
-      path: SayType/Support/SayType.entitlements
-      properties:
-        com.apple.security.app-sandbox: true
-        com.apple.security.device.audio-input: true
-        com.apple.security.network.client: true
     info:
       path: SayType/Support/Info.plist
       properties:
@@ -43,9 +41,18 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.saytype
+        # Mac App Store build: sandboxed.
+        CODE_SIGN_ENTITLEMENTS: SayType/Support/SayType.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: NO
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        # Direct download build (outside the Mac App Store): no App Sandbox, so the
+        # Accessibility API can see and type into text fields in other apps.
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: SayType/Support/SayType-Direct.entitlements
+        Direct:
+          CODE_SIGN_ENTITLEMENTS: SayType/Support/SayType-Direct.entitlements
   SayTypeTests:
     type: bundle.unit-test
     platform: macOS

@@ -55,7 +55,14 @@ final class AppController: ObservableObject {
     private var ttsReady = false
     private var isSpeaking = false
     private var micPermission = false
-    private var utterances: AsyncStream<[Float]>.Continuation?
+    /// Where the user was typing when they started speaking; text goes there, not wherever focus is later.
+    struct Target {
+        let element: AXUIElement?
+        let appName: String
+        let pid: pid_t
+    }
+    private var utterances: AsyncStream<([Float], Target?)>.Continuation?
+    private var speechTarget: Target?
     private var cancellables = Set<AnyCancellable>()
     private var stopMicWork: DispatchWorkItem?
     private var mediaTimer: Timer?
@@ -100,10 +107,19 @@ final class AppController: ObservableObject {
             self.vadQueue.async { self.vad.process(samples) }
         }
         vad.onSpeechStart = { [weak self] in
-            DispatchQueue.main.async { if self?.status == .listening { self?.status = .hearing } }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.speechTarget = self.currentTarget()
+                if self.status == .listening { self.status = .hearing }
+            }
         }
+        vad.onDebug = { [log] message in log.notice("vad: \(message, privacy: .public)") }
         vad.onUtterance = { [weak self] samples in
-            DispatchQueue.main.async { self?.utterances?.yield(samples) }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                // A forced split mid-sentence has no new speech start, so it keeps the same target.
+                self.utterances?.yield((samples, self.speechTarget ?? self.currentTarget()))
+            }
         }
         applyVADSettings()
     }
@@ -214,16 +230,22 @@ final class AppController: ObservableObject {
     // MARK: - Transcription
 
     private func startTranscriptionLoop() {
-        let (stream, continuation) = AsyncStream<[Float]>.makeStream()
+        let (stream, continuation) = AsyncStream<([Float], Target?)>.makeStream()
         utterances = continuation
         Task { [weak self] in
-            for await samples in stream {
-                await self?.handle(samples)
+            for await (samples, target) in stream {
+                await self?.handle(samples, target: target)
             }
         }
     }
 
-    private func handle(_ samples: [Float]) async {
+    private func currentTarget() -> Target? {
+        guard focus.state.canDictate else { return nil }
+        let pid = focus.focusedElement.map(FocusMonitor.pid) ?? NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
+        return Target(element: focus.focusedElement, appName: focus.frontAppName, pid: pid)
+    }
+
+    private func handle(_ samples: [Float], target: Target?) async {
         guard let stt, sttReady else { return }
         status = .transcribing
         defer {
@@ -237,17 +259,38 @@ final class AppController: ObservableObject {
         let prompt = teaching ? nil : vocabulary.prompt(includeCodeContext: Pref.defaults.bool(forKey: Pref.codeContextPrompt))
 
         do {
+            let start = Date()
             let raw = try await stt.transcribe(samples, prompt: prompt, language: language)
-            guard let cleaned = TranscriptFilter.clean(raw, prompt: prompt) else { return }
+            log.notice("stt: \(raw.count, privacy: .public) chars in \(String(format: "%.1f", Date().timeIntervalSince(start)), privacy: .public)s: \(raw, privacy: .private)")
+            guard let cleaned = TranscriptFilter.clean(raw, prompt: prompt) else {
+                log.notice("stt: dropped as noise/hallucination")
+                return
+            }
 
             if let teachHandler {
                 teachHandler(cleaned)
                 return
             }
             let text = vocabulary.apply(to: cleaned)
-            guard focus.state.canDictate else { return }
+            guard let target else {
+                log.notice("insert: skipped, no text field was focused when speech started")
+                return
+            }
             let method = InsertionMethod(rawValue: Pref.defaults.string(forKey: Pref.insertionMethod) ?? "") ?? .auto
-            inserter.insert(text, into: focus.focusedElement, appName: focus.frontAppName, method: method)
+            let stillThere = focus.state.canDictate
+                && (currentTarget()?.pid == target.pid)
+                && (target.element == nil || focus.focusedElement.map { CFEqual($0, target.element!) } ?? false)
+            if stillThere {
+                inserter.insert(text, into: target.element, appName: target.appName, method: method)
+            } else if let element = target.element,
+                      inserter.insert(text, into: element, appName: target.appName, method: .accessibility) {
+                log.notice("insert: focus moved, typed into the original field in \(target.appName, privacy: .public)")
+            } else {
+                // Never paste into whatever happens to be focused now; that's how text ends up in the wrong app.
+                log.notice("insert: focus moved away from \(target.appName, privacy: .public), dropped")
+                lastTranscript = text + "  (not typed: you switched away)"
+                return
+            }
             lastTranscript = text
         } catch {
             log.error("Transcription failed: \(String(describing: error), privacy: .public)")

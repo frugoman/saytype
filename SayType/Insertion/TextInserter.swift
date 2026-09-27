@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import os
 
 /// Puts text into whatever field has focus.
 ///
@@ -9,8 +10,10 @@ import ApplicationServices
 @MainActor
 final class TextInserter {
     private var lastInsert: (app: String, date: Date)?
+    private let log = Logger(subsystem: "SayType", category: "insert")
 
-    func insert(_ rawText: String, into element: AXUIElement?, appName: String, method: InsertionMethod) {
+    @discardableResult
+    func insert(_ rawText: String, into element: AXUIElement?, appName: String, method: InsertionMethod) -> Bool {
         var text = rawText
         if needsLeadingSpace(before: text, element: element, appName: appName) {
             text = " " + text
@@ -20,11 +23,14 @@ final class TextInserter {
         if method != .paste, let element {
             done = insertViaAccessibility(text, element: element)
         }
+        if done { log.notice("inserted via accessibility into \(appName, privacy: .public)") }
         if !done && method != .accessibility {
             paste(text)
+            log.notice("inserted via paste into \(appName, privacy: .public) (element: \(element != nil, privacy: .public))")
             done = true
         }
         if done { lastInsert = (appName, Date()) }
+        return done
     }
 
     // MARK: - Spacing

@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import os
 
 /// What currently has keyboard focus, as far as dictation is concerned.
 enum FocusState: Equatable {
@@ -21,6 +22,8 @@ final class FocusMonitor: ObservableObject {
     private var timer: Timer?
     private let systemWide = AXUIElementCreateSystemWide()
     private var appsWithAccessibilityEnabled = Set<pid_t>()
+    private let log = Logger(subsystem: "SayType", category: "focus")
+    private var lastError: AXError = .success
 
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
@@ -64,6 +67,10 @@ final class FocusMonitor: ObservableObject {
 
         var value: CFTypeRef?
         let err = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &value)
+        if err != lastError {
+            lastError = err
+            log.notice("focus: AX focused element error \(err.rawValue, privacy: .public) trusted=\(FocusMonitor.isTrusted, privacy: .public)")
+        }
         guard err == .success, let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
             // Some apps don't expose focus; honour the user's "always listen in this app" list.
             if isAlwaysListenApp(app) {
@@ -86,7 +93,17 @@ final class FocusMonitor: ObservableObject {
 
     private func update(_ newState: FocusState, element: AXUIElement?) {
         focusedElement = element
-        if state != newState { state = newState }
+        if state != newState {
+            let role = element.flatMap { Self.string($0, kAXRoleAttribute) } ?? "-"
+            log.notice("focus: \(String(describing: newState), privacy: .public) front=\(self.frontAppName, privacy: .public) role=\(role, privacy: .public) pid=\(element.map(Self.pid) ?? 0, privacy: .public)")
+            state = newState
+        }
+    }
+
+    static func pid(_ element: AXUIElement) -> pid_t {
+        var pid: pid_t = 0
+        AXUIElementGetPid(element, &pid)
+        return pid
     }
 
     private func isAlwaysListenApp(_ app: NSRunningApplication) -> Bool {
