@@ -1,4 +1,4 @@
-# VoiceTyper
+# SayType
 
 Always-ready, fully local dictation for macOS. Click into any text field and just talk — no
 hotkey to hold, no button to press. Pause for a moment and your words are typed in. Select text
@@ -30,13 +30,13 @@ and press **⌃⌥S** to hear it read aloud. No cloud, no subscription.
 **Voice → text**
 - Any WhisperKit Core ML model: pick from the list or type a model name + Hugging Face repo.
 - Anything else (Parakeet, whisper.cpp, MLX, …): run it as a local server with an
-  OpenAI-compatible `POST /v1/audio/transcriptions` endpoint and point VoiceTyper at it.
-- New engine types: implement `SpeechToTextEngine` (`VoiceTyper/STT/SpeechToText.swift`).
+  OpenAI-compatible `POST /v1/audio/transcriptions` endpoint and point SayType at it.
+- New engine types: implement `SpeechToTextEngine` (`SayType/STT/SpeechToText.swift`).
 
 **Text → voice**
 - macOS voices (no download), Qwen3-TTS on-device (0.6B / 1.7B), or any local server with an
   OpenAI-compatible `POST /v1/audio/speech` endpoint (e.g. Kokoro-FastAPI).
-- New engine types: implement `TextToSpeechEngine` (`VoiceTyper/TTS/TextToSpeech.swift`).
+- New engine types: implement `TextToSpeechEngine` (`SayType/TTS/TextToSpeech.swift`).
 
 ## Build
 
@@ -44,8 +44,8 @@ Requires Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 ./install.sh          # build release + install to /Applications
-xcodegen generate     # then open VoiceTyper.xcodeproj to develop
-xcodebuild -project VoiceTyper.xcodeproj -scheme VoiceTyper -destination 'platform=macOS' test
+xcodegen generate     # then open SayType.xcodeproj to develop
+xcodebuild -project SayType.xcodeproj -scheme SayType -destination 'platform=macOS' test
 ```
 
 On first launch grant **Microphone** and **Accessibility** access (System Settings → Privacy &

@@ -1,12 +1,12 @@
 #!/bin/zsh
-# Build a release copy of VoiceTyper and install it in /Applications.
+# Build a release copy of SayType and install it in /Applications.
 set -e
 cd "$(dirname "$0")"
 xcodegen generate -q
-xcodebuild -project VoiceTyper.xcodeproj -scheme VoiceTyper -configuration Release \
-  -derivedDataPath build -destination 'platform=macOS' build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
-pkill -x VoiceTyper || true
-rm -rf /Applications/VoiceTyper.app
-cp -R build/Build/Products/Release/VoiceTyper.app /Applications/
-open /Applications/VoiceTyper.app
-echo "Installed /Applications/VoiceTyper.app"
+xcodebuild -project SayType.xcodeproj -scheme SayType -configuration Release \
+  -derivedDataPath build -destination "platform=macOS,arch=arm64" build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+pkill -x SayType || true
+rm -rf /Applications/SayType.app
+cp -R build/Build/Products/Release/SayType.app /Applications/
+open /Applications/SayType.app
+echo "Installed /Applications/SayType.app"

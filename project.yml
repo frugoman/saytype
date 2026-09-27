@@ -1,4 +1,4 @@
-name: VoiceTyper
+name: SayType
 options:
   bundleIdPrefix: com.nicolasfrugoni
   deploymentTarget:
@@ -16,55 +16,56 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
-  VoiceTyper:
+  SayType:
     type: application
     platform: macOS
-    sources: [VoiceTyper]
+    sources: [SayType]
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
       - package: ArgmaxOSS
         product: TTSKit
     entitlements:
-      path: VoiceTyper/Support/VoiceTyper.entitlements
+      path: SayType/Support/SayType.entitlements
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.device.audio-input: true
         com.apple.security.network.client: true
     info:
-      path: VoiceTyper/Support/Info.plist
+      path: SayType/Support/Info.plist
       properties:
-        CFBundleDisplayName: VoiceTyper
+        CFBundleDisplayName: SayType
         LSApplicationCategoryType: public.app-category.productivity
         LSUIElement: true
-        NSMicrophoneUsageDescription: VoiceTyper listens while a text field is focused and turns your speech into text. Audio never leaves your Mac.
+        ITSAppUsesNonExemptEncryption: false
+        NSMicrophoneUsageDescription: SayType listens while a text field is focused and turns your speech into text. Audio never leaves your Mac.
         NSHumanReadableCopyright: ""
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.voicetyper
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.saytype
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: NO
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
-  VoiceTyperTests:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+  SayTypeTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - VoiceTyperTests
-      - VoiceTyper/Vocabulary
-      - VoiceTyper/STT
-      - VoiceTyper/Audio
-      - VoiceTyper/App/Settings.swift
+      - SayTypeTests
+      - SayType/Vocabulary
+      - SayType/STT
+      - SayType/Audio
+      - SayType/App/Settings.swift
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.voicetyper.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.saytype.tests
 schemes:
-  VoiceTyper:
+  SayType:
     build:
       targets:
-        VoiceTyper: all
+        SayType: all
     test:
-      targets: [VoiceTyperTests]
+      targets: [SayTypeTests]
