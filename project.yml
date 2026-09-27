@@ -1,0 +1,70 @@
+name: VoiceTyper
+options:
+  bundleIdPrefix: com.nicolasfrugoni
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  ArgmaxOSS:
+    url: https://github.com/argmaxinc/argmax-oss-swift.git
+    from: 1.1.0
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: VQDNM3C2SW
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  VoiceTyper:
+    type: application
+    platform: macOS
+    sources: [VoiceTyper]
+    dependencies:
+      - package: ArgmaxOSS
+        product: WhisperKit
+      - package: ArgmaxOSS
+        product: TTSKit
+    entitlements:
+      path: VoiceTyper/Support/VoiceTyper.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.device.audio-input: true
+        com.apple.security.network.client: true
+    info:
+      path: VoiceTyper/Support/Info.plist
+      properties:
+        CFBundleDisplayName: VoiceTyper
+        LSApplicationCategoryType: public.app-category.productivity
+        LSUIElement: true
+        NSMicrophoneUsageDescription: VoiceTyper listens while a text field is focused and turns your speech into text. Audio never leaves your Mac.
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.voicetyper
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+  VoiceTyperTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - VoiceTyperTests
+      - VoiceTyper/Vocabulary
+      - VoiceTyper/STT
+      - VoiceTyper/Audio
+      - VoiceTyper/App/Settings.swift
+    dependencies:
+      - package: ArgmaxOSS
+        product: WhisperKit
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicolasfrugoni.voicetyper.tests
+schemes:
+  VoiceTyper:
+    build:
+      targets:
+        VoiceTyper: all
+    test:
+      targets: [VoiceTyperTests]
