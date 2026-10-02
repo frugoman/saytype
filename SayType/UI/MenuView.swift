@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuView: View {
     @EnvironmentObject var controller: AppController
     @EnvironmentObject var focus: FocusMonitor
+    @EnvironmentObject var history: HistoryStore
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
@@ -28,6 +29,23 @@ struct MenuView: View {
                 }
             }
 
+            if history.entries.count > 1 {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Recent").font(.caption).foregroundStyle(.secondary)
+                    ForEach(history.entries.dropFirst().prefix(3)) { entry in
+                        Button {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(entry.text, forType: .string)
+                        } label: {
+                            Text(entry.text).lineLimit(1).truncationMode(.tail).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
+                        .font(.callout)
+                        .help("Click to copy")
+                    }
+                }
+            }
+
             Divider()
 
             VStack(alignment: .leading, spacing: 4) {
@@ -48,6 +66,12 @@ struct MenuView: View {
                     openSettings()
                 }
                 Menu("More") {
+                    Button("Transcribe a file…") { TranscribeWindow.shared.show() }
+                    Button(TranscribeWindow.shared.isRecordingMeeting ? "Stop recording meeting" : "Record a meeting…") {
+                        TranscribeWindow.shared.toggleMeeting()
+                    }
+                    Button("Copy last transcript") { controller.copyLastTranscript() }
+                    Divider()
                     Button("Setup…") { OnboardingWindow.shared.show() }
                     Button("Website") { NSWorkspace.shared.open(Links.website) }
                     Divider()

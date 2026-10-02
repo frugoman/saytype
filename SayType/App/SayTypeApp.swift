@@ -10,6 +10,7 @@ struct SayTypeApp: App {
             MenuView()
                 .environmentObject(controller)
                 .environmentObject(controller.focus)
+                .environmentObject(controller.history)
         } label: {
             MenuBarIcon(status: controller.status)
         }
