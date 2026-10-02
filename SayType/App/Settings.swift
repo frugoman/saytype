@@ -33,6 +33,33 @@ enum TTSEngineKind: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// When SayType listens.
+enum ListenMode: String, CaseIterable, Identifiable {
+    case auto, pushToTalk, toggle
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .auto: return "Hands-free: listen whenever a text field has focus"
+        case .pushToTalk: return "Push to talk: hold the shortcut while you speak"
+        case .toggle: return "Toggle: press the shortcut to start and again to stop"
+        }
+    }
+}
+
+/// Which engine rewrites text (cleanup, voice-edit, translation, summaries).
+enum AIBackendKind: String, CaseIterable, Identifiable {
+    case apple, server
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .apple: return "Apple on-device model (macOS 26+, no setup)"
+        case .server: return "Local server (Ollama, LM Studio, llama.cpp, mlx_lm)"
+        }
+    }
+}
+
 /// How dictated text gets into the focused field.
 enum InsertionMethod: String, CaseIterable, Identifiable, Codable {
     case auto, accessibility, paste
@@ -85,6 +112,18 @@ enum Pref {
     static let alwaysListenApps = "alwaysListenApps"
     static let pauseWhileMediaPlays = "pauseWhileMediaPlays"
     static let codeContextPrompt = "codeContextPrompt"
+    static let listenMode = "listenMode"
+    static let soundFeedback = "soundFeedback"
+    static let showOverlay = "showOverlay"
+    static let historyEnabled = "historyEnabled"
+    static let voiceCommands = "voiceCommands"
+    static let spokenPunctuation = "spokenPunctuation"
+    static let cleanupLevel = "cleanupLevel"
+    static let aiBackend = "aiBackend"
+    static let aiServerURL = "aiServerURL"
+    static let aiServerModel = "aiServerModel"
+    static let translateToEnglish = "translateToEnglish"
+    static let outputLanguage = "outputLanguage"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
@@ -109,6 +148,18 @@ enum Pref {
             alwaysListenApps: [String](),
             pauseWhileMediaPlays: false,
             codeContextPrompt: true,
+            listenMode: ListenMode.auto.rawValue,
+            soundFeedback: false,
+            showOverlay: true,
+            historyEnabled: true,
+            voiceCommands: true,
+            spokenPunctuation: false,
+            cleanupLevel: CleanupLevel.off.rawValue,
+            aiBackend: AIBackendKind.apple.rawValue,
+            aiServerURL: "http://127.0.0.1:11434",
+            aiServerModel: "llama3.2",
+            translateToEnglish: false,
+            outputLanguage: "",
         ])
     }
 
@@ -129,6 +180,12 @@ enum AppPaths {
         return url
     }
     static var vocabularyFile: URL { support.appendingPathComponent("vocabulary.json") }
+    static var snippetsFile: URL { support.appendingPathComponent("snippets.json") }
+    static var profilesFile: URL { support.appendingPathComponent("profiles.json") }
+    static var historyFile: URL { support.appendingPathComponent("history.json") }
+    /// Plain-text copies read by the `saytype` command-line tool.
+    static var lastTranscriptFile: URL { support.appendingPathComponent("last-transcript.txt") }
+    static var statusFile: URL { support.appendingPathComponent("status.txt") }
 }
 
 /// Whisper language codes offered in the UI.
@@ -136,4 +193,14 @@ let supportedLanguages: [(code: String, name: String)] = [
     ("auto", "Auto-detect"), ("en", "English"), ("es", "Spanish"), ("pt", "Portuguese"),
     ("fr", "French"), ("de", "German"), ("it", "Italian"), ("nl", "Dutch"), ("ja", "Japanese"),
     ("zh", "Chinese"), ("ko", "Korean"), ("ru", "Russian"), ("hi", "Hindi"),
+    ("ar", "Arabic"), ("bg", "Bulgarian"), ("ca", "Catalan"), ("cs", "Czech"), ("da", "Danish"),
+    ("el", "Greek"), ("fi", "Finnish"), ("he", "Hebrew"), ("hr", "Croatian"), ("hu", "Hungarian"),
+    ("id", "Indonesian"), ("no", "Norwegian"), ("pl", "Polish"), ("ro", "Romanian"), ("sk", "Slovak"),
+    ("sv", "Swedish"), ("th", "Thai"), ("tr", "Turkish"), ("uk", "Ukrainian"), ("vi", "Vietnamese"),
+]
+
+/// Languages the AI backend can write in ("Output language"), by English name.
+let outputLanguages: [String] = [
+    "English", "Spanish", "Portuguese", "French", "German", "Italian", "Dutch", "Japanese", "Chinese",
+    "Korean", "Russian", "Hindi", "Arabic", "Polish", "Turkish", "Swedish", "Ukrainian",
 ]

@@ -70,7 +70,7 @@ final class VocabularyStore: ObservableObject {
     }
 
     /// "Say Type" matches "say type", "Say-Type", "say, type" …
-    private static func pattern(for alias: String) -> String {
+    static func pattern(for alias: String) -> String {
         let words = alias.lowercased()
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }

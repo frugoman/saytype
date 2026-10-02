@@ -10,12 +10,15 @@ import os
 @MainActor
 final class TextInserter {
     private var lastInsert: (app: String, date: Date)?
+    /// Characters the most recent `insert` typed, including a leading space it added.
+    private(set) var lastInsertedCount = 0
     private let log = Logger(subsystem: "SayType", category: "insert")
 
     @discardableResult
-    func insert(_ rawText: String, into element: AXUIElement?, appName: String, method: InsertionMethod) -> Bool {
+    func insert(_ rawText: String, into element: AXUIElement?, appName: String, method: InsertionMethod,
+                replacingSelection: Bool = false) -> Bool {
         var text = rawText
-        if needsLeadingSpace(before: text, element: element, appName: appName) {
+        if !replacingSelection, needsLeadingSpace(before: text, element: element, appName: appName) {
             text = " " + text
         }
 
@@ -29,7 +32,7 @@ final class TextInserter {
             log.notice("inserted via paste into \(appName, privacy: .public) (element: \(element != nil, privacy: .public))")
             done = true
         }
-        if done { lastInsert = (appName, Date()) }
+        if done { lastInsert = (appName, Date()); lastInsertedCount = text.count }
         return done
     }
 
