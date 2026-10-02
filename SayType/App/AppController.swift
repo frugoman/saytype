@@ -39,6 +39,9 @@ final class AppController: ObservableObject {
         }
     }
 
+    /// True while a meeting is being recorded; live dictation pauses so it doesn't type the meeting.
+    var meetingActive = false { didSet { refresh() } }
+
     let focus = FocusMonitor()
     let vocabulary = VocabularyStore()
 
@@ -155,7 +158,7 @@ final class AppController: ObservableObject {
         if teachHandler != nil {
             wantsMic = sttReady && micPermission
         } else {
-            wantsMic = enabled && sttReady && micPermission && focus.state.canDictate && !isSpeaking && !mediaPlaying
+            wantsMic = enabled && !meetingActive && sttReady && micPermission && focus.state.canDictate && !isSpeaking && !mediaPlaying
         }
 
         if wantsMic {
