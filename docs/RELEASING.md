@@ -29,5 +29,16 @@ The cask also installs the `saytype` command-line tool (`binary` stanza pointing
 The source is open (MIT). Tagging a release on the app repository (`git tag v<version>`) is optional
 and does not change the flow above: the Homebrew release on the tap is what users install.
 
-The build is signed with the Apple Development identity but not notarized, so the cask removes the
-quarantine flag after install. To notarize later you need a Developer ID Application certificate.
+## Signing and notarization
+
+The script archives the Direct configuration, exports it signed with the **Developer ID Application**
+certificate, submits it to Apple's notary service, staples the ticket, and checks Gatekeeper accepts it. The
+release is aborted if notarization isn't accepted. Users need no quarantine workaround.
+
+One-time setup (already done for this Mac):
+- A Developer ID Application certificate in the login keychain. Only the Account Holder can create it, at
+  developer.apple.com → Certificates → Developer ID Application (G2). It is valid until 2031.
+- An App Store Connect API key (`~/.appstoreconnect/private_keys/AuthKey_<id>.p8`). The script defaults to
+  key `4VK7XSDKY9`; override with `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_PATH`.
+
+To release from another Mac, export the certificate with its private key from Keychain Access and import it there.
