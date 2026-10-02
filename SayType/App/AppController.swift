@@ -606,6 +606,7 @@ final class AppController: ObservableObject {
     // MARK: - Automation
 
     func run(_ command: AutomationCommand) {
+        log.notice("automation: \(String(describing: command).prefix(40), privacy: .public)")
         switch command {
         case .dictation(let mode):
             switch mode {

@@ -3,7 +3,7 @@ import XCTest
 @MainActor
 final class VocabularyTests: XCTestCase {
     private func store(_ entries: [VocabularyEntry]) -> VocabularyStore {
-        let s = VocabularyStore()
+        let s = VocabularyStore(file: FileManager.default.temporaryDirectory.appendingPathComponent("vocab-\(UUID()).json"))
         s.entries = entries
         return s
     }
@@ -112,7 +112,7 @@ final class WhisperIntegrationTests: XCTestCase {
         XCTAssertTrue(text.contains("GitHub"), text)
 
         // A taught mishearing fixes the small model's mistake.
-        let vocab = await VocabularyStore()
+        let vocab = await VocabularyStore(file: FileManager.default.temporaryDirectory.appendingPathComponent("vocab-\(UUID()).json"))
         await MainActor.run { vocab.entries = [VocabularyEntry(term: "pull request", soundsLike: ["poll request"])] }
         let fixed = await vocab.apply(to: text)
         await MainActor.run { vocab.entries = [] }

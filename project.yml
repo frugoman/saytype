@@ -20,13 +20,21 @@ settings:
     SWIFT_VERSION: "5.0"
     DEVELOPMENT_TEAM: VQDNM3C2SW
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "1.0.1"
+    MARKETING_VERSION: "1.1.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   SayType:
     type: application
     platform: macOS
-    sources: [SayType]
+    sources:
+      - path: SayType
+        excludes: ["Resources/CLI/**"]
+      # The `saytype` command-line tool; the Homebrew cask links it into the PATH.
+      - path: SayType/Resources/CLI/saytype
+        buildPhase:
+          copyFiles:
+            destination: resources
+            subpath: CLI
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit

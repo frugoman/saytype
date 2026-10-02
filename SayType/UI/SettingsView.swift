@@ -156,7 +156,10 @@ struct SpeechToTextSettings: View {
             }
 
             if engine == STTEngineKind.parakeet.rawValue {
-                EmptyView()
+                Section {
+                    Text("Parakeet v3 downloads once (about 470 MB) and runs on the Neural Engine. It's several times faster than Whisper for European languages.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             } else if engine == STTEngineKind.whisperKit.rawValue {
                 Section {
                     Picker("Model", selection: $model) {

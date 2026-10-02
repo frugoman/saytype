@@ -25,7 +25,10 @@ final class VocabularyStore: ObservableObject {
     /// Primes Whisper for developer speech when "code context" is on.
     static let codeContext = "Software developer dictation with code terms: GitHub, TypeScript, JavaScript, JSON, API, npm, pnpm, Git, PostgreSQL, Kubernetes, Docker, localhost, README, async/await, OAuth, CLI, Xcode, SwiftUI, Python, regex, PR, CI/CD, env, stdout."
 
-    init() {
+    private let file: URL
+
+    init(file: URL = AppPaths.vocabularyFile) {
+        self.file = file
         load()
         rebuildRules()
     }
@@ -98,13 +101,13 @@ final class VocabularyStore: ObservableObject {
     // MARK: - Persistence
 
     private func load() {
-        guard let data = try? Data(contentsOf: AppPaths.vocabularyFile),
+        guard let data = try? Data(contentsOf: file),
               let decoded = try? JSONDecoder().decode([VocabularyEntry].self, from: data) else { return }
         entries = decoded
     }
 
     private func save() {
         guard let data = try? JSONEncoder().encode(entries) else { return }
-        try? data.write(to: AppPaths.vocabularyFile, options: .atomic)
+        try? data.write(to: file, options: .atomic)
     }
 }

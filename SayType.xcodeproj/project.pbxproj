@@ -48,6 +48,7 @@
 		B51990B2EC0C5EE342317F5D /* SpeechToText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E66D6FDA3EE85BD826D379C /* SpeechToText.swift */; };
 		B6A05C43ABEAA65CA4103A1B /* Snippets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856354BCA414975F0FBC1FBF /* Snippets.swift */; };
 		BB8BD9AF488B11BA040B97BC /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31E8F24B9662632F898C0F6 /* SettingsView.swift */; };
+		BF537DD19D175B0FD53D706B /* saytype in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0B8E0F4CB157206F608BA94F /* saytype */; };
 		C29E05A0F00354E11AC8457E /* AIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F36CD75CED4CFD6CED55DAC8 /* AIService.swift */; };
 		C95D6342C61F1E7A127204F5 /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631E18269B44FB8E24A9E5E4 /* ParakeetEngine.swift */; };
 		C9C87F2E5121637D1B6856EB /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75285A4114AA13AB9A702960 /* MenuView.swift */; };
@@ -66,6 +67,19 @@
 		FF12D79124F88ED147E3A71E /* Vocabulary.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9F1BC105E2404CEA5598CB /* Vocabulary.swift */; };
 		FFFFC58842148784F0CB4DB3 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD28D69B1D3FE0CA083A873 /* Settings.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		613B871E047BC141BFCA1B96 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = CLI;
+			dstSubfolderSpec = 7;
+			files = (
+				BF537DD19D175B0FD53D706B /* saytype in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		07669D1DAD103770A3DC26E2 /* SayTypeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SayTypeTests.swift; sourceTree = "<group>"; };
@@ -362,6 +376,7 @@
 			buildPhases = (
 				EE059A8BDDEB2521248C1993 /* Sources */,
 				349E65761C81508630B3EF4F /* Resources */,
+				613B871E047BC141BFCA1B96 /* CopyFiles */,
 				F56CDBCB222C9440BDCEB4BB /* Frameworks */,
 			);
 			buildRules = (
@@ -571,7 +586,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -723,7 +738,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -784,7 +799,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
