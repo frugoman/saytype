@@ -1,18 +1,15 @@
 import AVFoundation
 import ServiceManagement
-import Sparkle
 import SwiftUI
 
 struct SettingsView: View {
-    let updater: SPUUpdater
-
     var body: some View {
         TabView {
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
             SpeechToTextSettings().tabItem { Label("Voice → Text", systemImage: "waveform") }
             VocabularySettings().tabItem { Label("Vocabulary", systemImage: "character.book.closed") }
             TextToSpeechSettings().tabItem { Label("Text → Voice", systemImage: "speaker.wave.2") }
-            LicenseSettings(updater: updater).tabItem { Label("License", systemImage: "key") }
+            AboutSettings().tabItem { Label("About", systemImage: "info.circle") }
         }
         .frame(width: 560, height: 520)
     }
@@ -372,53 +369,40 @@ struct TextToSpeechSettings: View {
     }
 }
 
-// MARK: - License & updates
+// MARK: - About
 
-struct LicenseSettings: View {
-    @EnvironmentObject var license: LicenseManager
-    let updater: SPUUpdater
-    @State private var key = ""
-    @State private var autoUpdate = false
+struct AboutSettings: View {
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
 
     var body: some View {
         Form {
-            Section("License") {
-                switch license.state {
-                case .licensed(let email):
-                    Label("SayType is activated\(email.map { " for \($0)" } ?? "").", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(.green)
-                    Button("Deactivate This Mac") { Task { await license.deactivate() } }
-                        .disabled(license.isWorking)
-                case .trial(let days):
-                    Text("Free trial: \(days) day\(days == 1 ? "" : "s") left.")
-                    keyEntry
-                case .trialExpired:
-                    Text("Your free trial has ended.").foregroundStyle(.orange)
-                    keyEntry
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("SayType is free.").font(.headline)
+                    Text("No trial, no account, no subscription. If it saves you some typing, you can buy me a coffee. It keeps the app going.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                Button("Buy Me a Coffee…") { NSWorkspace.shared.open(Links.coffee) }
             }
             Section("Updates") {
-                Toggle("Install updates automatically", isOn: $autoUpdate)
-                    .onChange(of: autoUpdate) { _, on in updater.automaticallyDownloadsUpdates = on }
-                Button("Check for Updates Now") { updater.checkForUpdates() }
-                LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
+                LabeledContent("Version", value: version)
+                LabeledContent("Update with Homebrew") {
+                    Text(Links.upgradeCommand)
+                        .font(.system(.callout, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+                Button("Copy Update Command") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(Links.upgradeCommand, forType: .string)
+                }
+            }
+            Section {
+                Button("Website") { NSWorkspace.shared.open(Links.website) }
             }
         }
         .formStyle(.grouped)
-        .onAppear { autoUpdate = updater.automaticallyDownloadsUpdates }
-    }
-
-    @ViewBuilder private var keyEntry: some View {
-        HStack {
-            TextField("License key", text: $key)
-                .font(.system(.body, design: .monospaced))
-                .onSubmit { Task { await license.activate(key: key) } }
-            Button("Activate") { Task { await license.activate(key: key) } }
-                .disabled(key.isEmpty || license.isWorking)
-        }
-        if let error = license.lastError {
-            Text(error).font(.caption).foregroundStyle(.red)
-        }
-        Button("Buy SayType") { NSWorkspace.shared.open(LicenseConfig.checkoutURL) }
     }
 }

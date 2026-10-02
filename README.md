@@ -2,7 +2,7 @@
 
 Always-ready, fully local dictation for macOS. Click into any text field and just talk — no
 hotkey to hold, no button to press. Pause for a moment and your words are typed in. Select text
-and press **⌃⌥S** to hear it read aloud. No cloud, no subscription.
+and press **⌃⌥S** to hear it read aloud. No cloud, no subscription, free.
 
 ## How it works
 
@@ -52,9 +52,20 @@ On first launch grant **Microphone** and **Accessibility** access (System Settin
 Security). The model downloads once (~630 MB) and is optimized for your Mac (a few minutes the
 first time).
 
+## Install
+
+SayType is free. Install it with [Homebrew](https://brew.sh):
+
+```bash
+brew install --cask frugoman/tap/saytype
+```
+
+Update with `brew upgrade --cask saytype`. If it's useful to you, you can
+[buy me a coffee](https://buymeacoffee.com/frugoman).
+
 ## Distribution
 
-Sold directly (not the Mac App Store: the App Sandbox blocks reading other apps' text fields).
+Distributed through Homebrew, not the Mac App Store: the App Sandbox blocks reading other apps' text fields.
 See [docs/RELEASING.md](docs/RELEASING.md). `./install.sh` installs the unsandboxed **Direct** build locally.
 
 ## Mac App Store notes (sandboxed Release config, currently not viable)

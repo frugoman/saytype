@@ -19,7 +19,6 @@ final class AppController: ObservableObject {
         case disabled
         case needsMicPermission
         case needsAccessibility
-        case trialExpired
         case error(String)
     }
 
@@ -82,11 +81,6 @@ final class AppController: ObservableObject {
     func start() {
         wireAudio()
         startTranscriptionLoop()
-
-        LicenseManager.shared.$state
-            .removeDuplicates()
-            .sink { [weak self] _ in DispatchQueue.main.async { self?.refresh() } }
-            .store(in: &cancellables)
 
         focus.$state
             .removeDuplicates()
@@ -162,7 +156,6 @@ final class AppController: ObservableObject {
             wantsMic = sttReady && micPermission
         } else {
             wantsMic = enabled && sttReady && micPermission && focus.state.canDictate && !isSpeaking && !mediaPlaying
-                && LicenseManager.shared.canUse
         }
 
         if wantsMic {
@@ -196,7 +189,6 @@ final class AppController: ObservableObject {
         if status == .transcribing || status == .hearing { return }
         if isSpeaking { status = .speaking; return }
         if !micPermission { status = .needsMicPermission; return }
-        if !LicenseManager.shared.canUse { status = .trialExpired; return }
         if focus.state == .noPermission { status = .needsAccessibility; return }
         if !enabled && teachHandler == nil { status = .disabled; return }
         status = audio.isRunning ? .listening : .idle
