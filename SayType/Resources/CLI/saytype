@@ -1,0 +1,165 @@
+#!/bin/bash
+# saytype: control the SayType app from the command line.
+# Talks to the app through its saytype:// URL scheme. No dependencies, bash 3.2 compatible.
+#
+# Exit codes: 0 success, 1 failed (app could not be reached, no transcript, file missing),
+#             2 usage error (unknown command or bad arguments).
+
+VERSION="1.1.0"
+SUPPORT_DIR="$HOME/Library/Application Support/SayType"
+
+usage() {
+  cat <<'USAGE'
+Usage: saytype <command> [arguments]
+
+Dictation
+  toggle                      turn dictation on or off
+  on                          turn dictation on
+  off                         turn dictation off
+  record [start|stop|toggle]  manual recording (default: toggle)
+
+Reading and editing
+  speak [text...]             read text aloud; with no text, read the current selection
+  edit                        voice-edit the current selection
+
+Files and meetings
+  transcribe <file>           transcribe an audio or video file
+  meeting start|stop          start or stop recording a meeting
+
+Transcripts and state
+  copy-last                   copy the last transcript to the clipboard
+  last                        print the last transcript
+  status                      print one word: listening, idle, off, loading, speaking, recording
+
+Other
+  version                     print the version
+  help                        show this help
+
+Commands that act open a saytype:// URL in the background, which starts SayType
+if it is not running. Everything stays on this Mac.
+
+Exit codes: 0 success, 1 failed, 2 usage error.
+
+Examples
+  saytype toggle
+  saytype speak "Build finished"
+  saytype transcribe ~/Recordings/interview.m4a
+  saytype last | pbcopy
+USAGE
+}
+
+die_usage() {
+  echo "saytype: $1" >&2
+  echo "Try 'saytype help'." >&2
+  exit 2
+}
+
+# Percent-encode stdin. Uses perl, which ships with macOS.
+urlencode() {
+  printf '%s' "$1" | /usr/bin/perl -pe 's/([^A-Za-z0-9_.~-])/sprintf("%%%02X", ord($1))/ge'
+}
+
+send() {
+  if ! open -g "$1"; then
+    echo "saytype: could not open SayType. Is it installed?" >&2
+    exit 1
+  fi
+}
+
+# Require exactly one of the given words as the argument.
+need_one_of() {
+  local value="$1"
+  shift
+  local option
+  for option in "$@"; do
+    [ "$value" = "$option" ] && return 0
+  done
+  return 1
+}
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+
+case "$cmd" in
+  toggle|on|off)
+    [ $# -eq 0 ] || die_usage "'$cmd' takes no arguments"
+    send "saytype://dictation/$cmd"
+    ;;
+
+  record)
+    action="${1:-toggle}"
+    [ $# -le 1 ] || die_usage "record takes one of: start, stop, toggle"
+    need_one_of "$action" start stop toggle || die_usage "record takes one of: start, stop, toggle"
+    send "saytype://record/$action"
+    ;;
+
+  speak)
+    if [ $# -eq 0 ]; then
+      send "saytype://speak"
+    else
+      send "saytype://speak?text=$(urlencode "$*")"
+    fi
+    ;;
+
+  edit)
+    [ $# -eq 0 ] || die_usage "'edit' takes no arguments"
+    send "saytype://edit"
+    ;;
+
+  transcribe)
+    [ $# -eq 1 ] || die_usage "transcribe needs one file"
+    file="$1"
+    if [ ! -f "$file" ]; then
+      echo "saytype: no such file: $file" >&2
+      exit 1
+    fi
+    case "$file" in
+      /*) abs="$file" ;;
+      *)  abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")" ;;
+    esac
+    send "saytype://transcribe?file=$(urlencode "$abs")"
+    ;;
+
+  meeting)
+    action="${1:-}"
+    [ $# -eq 1 ] || die_usage "meeting needs start or stop"
+    need_one_of "$action" start stop || die_usage "meeting needs start or stop"
+    send "saytype://meeting/$action"
+    ;;
+
+  copy-last)
+    [ $# -eq 0 ] || die_usage "'copy-last' takes no arguments"
+    send "saytype://history/copy-last"
+    ;;
+
+  last)
+    [ $# -eq 0 ] || die_usage "'last' takes no arguments"
+    if [ ! -r "$SUPPORT_DIR/last-transcript.txt" ]; then
+      echo "saytype: no transcript yet" >&2
+      exit 1
+    fi
+    cat "$SUPPORT_DIR/last-transcript.txt"
+    ;;
+
+  status)
+    [ $# -eq 0 ] || die_usage "'status' takes no arguments"
+    # The status file can be stale if the app quit, so check that it is running.
+    if ! pgrep -x SayType >/dev/null 2>&1 || [ ! -r "$SUPPORT_DIR/status.txt" ]; then
+      echo "off"
+    else
+      cat "$SUPPORT_DIR/status.txt"
+    fi
+    ;;
+
+  version|--version|-v)
+    echo "saytype $VERSION"
+    ;;
+
+  help|--help|-h)
+    usage
+    ;;
+
+  *)
+    die_usage "unknown command '$cmd'"
+    ;;
+esac

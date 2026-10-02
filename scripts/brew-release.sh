@@ -61,6 +61,7 @@ cask "saytype" do
   depends_on macos: :sonoma
 
   app "SayType.app"
+  binary "#{appdir}/SayType.app/Contents/Resources/CLI/saytype"
 
   # The app is not notarized, so drop the quarantine flag to let Gatekeeper open it.
   postflight_steps do
@@ -78,6 +79,10 @@ cask "saytype" do
   caveats <<~EOS
     Open SayType from /Applications and grant Microphone and Accessibility access.
     The speech model (~630 MB) downloads once on first launch.
+
+    The saytype command is installed too. Run: saytype help
+    Recording a meeting also needs Screen & System Audio Recording access
+    (System Settings > Privacy & Security). Dictation does not.
   EOS
 end
 CASK
