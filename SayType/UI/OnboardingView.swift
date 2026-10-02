@@ -163,7 +163,7 @@ struct OnboardingView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
 
-            Text("\(HotKeys.toggleListening.label) turns dictation on or off  ·  \(HotKeys.speakSelection.label) reads selected text aloud\nSayType lives in your menu bar.")
+            Text("\(ShortcutAction.toggleDictation.shortcut.label) turns dictation on or off  ·  \(ShortcutAction.pushToTalk.shortcut.label) is push to talk  ·  \(ShortcutAction.speakSelection.shortcut.label) reads selected text aloud\nSayType lives in your menu bar.")
                 .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
 
             Button("Done") { onFinish() }

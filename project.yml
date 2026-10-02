@@ -37,6 +37,9 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
         LSUIElement: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.nicolasfrugoni.saytype
+            CFBundleURLSchemes: [saytype]
         ITSAppUsesNonExemptEncryption: false
         NSMicrophoneUsageDescription: SayType listens while a text field is focused and turns your speech into text. Audio never leaves your Mac.
         NSHumanReadableCopyright: ""
@@ -63,6 +66,11 @@ targets:
       - SayType/Vocabulary
       - SayType/STT
       - SayType/Audio
+      - SayType/Commands
+      - SayType/History
+      - SayType/Profiles
+      - SayType/AI/CleanupPrompts.swift
+      - SayType/Automation/AutomationCommand.swift
       - SayType/App/Settings.swift
       - SayType/Transcribe/TranscriptFormats.swift
       - SayType/Transcribe/AudioDecoder.swift

@@ -19,6 +19,9 @@ struct SayTypeApp: App {
             SettingsView()
                 .environmentObject(controller)
                 .environmentObject(controller.vocabulary)
+                .environmentObject(controller.snippets)
+                .environmentObject(controller.profiles)
+                .environmentObject(controller.history)
         }
     }
 }
@@ -28,6 +31,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppController.shared.start()
         if !OnboardingWindow.isComplete || AppController.shared.needsSetup {
             OnboardingWindow.shared.show()
+        }
+    }
+
+    /// `saytype://…` links from the command-line tool, Raycast, Shortcuts and scripts.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            if let command = AutomationCommand.parse(url) { AppController.shared.run(command) }
         }
     }
 }

@@ -8,10 +8,14 @@ struct SettingsView: View {
             GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
             SpeechToTextSettings().tabItem { Label("Voice → Text", systemImage: "waveform") }
             VocabularySettings().tabItem { Label("Vocabulary", systemImage: "character.book.closed") }
+            CommandsSettings().tabItem { Label("Commands", systemImage: "text.badge.plus") }
+            ProfileSettings().tabItem { Label("Apps", systemImage: "app.badge") }
+            AISettings().tabItem { Label("AI", systemImage: "sparkles") }
+            HistorySettings().tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
             TextToSpeechSettings().tabItem { Label("Text → Voice", systemImage: "speaker.wave.2") }
             AboutSettings().tabItem { Label("About", systemImage: "info.circle") }
         }
-        .frame(width: 560, height: 520)
+        .frame(width: 620, height: 560)
     }
 }
 
@@ -23,6 +27,9 @@ struct GeneralSettings: View {
     @AppStorage(Pref.pauseToCommit) private var pause = 0.8
     @AppStorage(Pref.insertionMethod) private var insertion = InsertionMethod.auto.rawValue
     @AppStorage(Pref.pauseWhileMediaPlays) private var pauseForMedia = false
+    @AppStorage(Pref.listenMode) private var listenMode = ListenMode.auto.rawValue
+    @AppStorage(Pref.soundFeedback) private var sounds = false
+    @AppStorage(Pref.showOverlay) private var overlay = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var alwaysListen: [String] = Pref.defaults.stringArray(forKey: Pref.alwaysListenApps) ?? []
 
@@ -37,6 +44,25 @@ struct GeneralSettings: View {
                         } catch { launchAtLogin = !on }
                     }
             }
+            Section {
+                Picker("Listen", selection: $listenMode) {
+                    ForEach(ListenMode.allCases) { Text($0.label).tag($0.rawValue) }
+                }
+                .pickerStyle(.radioGroup)
+                Toggle("Show a recording pill on screen", isOn: $overlay)
+                Toggle("Play a sound when recording starts and stops", isOn: $sounds)
+            } header: {
+                Text("Mode")
+            } footer: {
+                Text("The push-to-talk shortcut also works in hands-free mode, for apps that don't report their text fields.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .onChange(of: listenMode) { controller.listenModeChanged() }
+
+            Section("Shortcuts") {
+                ForEach(ShortcutAction.allCases) { ShortcutRow(action: $0) }
+            }
+
             Section("Listening") {
                 LabeledContent("Sensitivity") {
                     Slider(value: $sensitivity, in: 0...1) {
@@ -106,6 +132,7 @@ struct SpeechToTextSettings: View {
     @AppStorage(Pref.whisperRepo) private var repo = "argmaxinc/whisperkit-coreml"
     @AppStorage(Pref.language) private var language = "en"
     @AppStorage(Pref.codeContextPrompt) private var codeContext = true
+    @AppStorage(Pref.translateToEnglish) private var translate = false
     @AppStorage(Pref.sttServerURL) private var serverURL = "http://127.0.0.1:8080"
     @AppStorage(Pref.sttServerModel) private var serverModel = "whisper-1"
 
@@ -119,9 +146,18 @@ struct SpeechToTextSettings: View {
                     ForEach(supportedLanguages, id: \.code) { Text($0.name).tag($0.code) }
                 }
                 Toggle("Tuned for developers (knows common code terms)", isOn: $codeContext)
+                Toggle("Translate everything to English", isOn: $translate)
+                    .disabled(engine == STTEngineKind.parakeet.rawValue)
+            } footer: {
+                Text(engine == STTEngineKind.parakeet.rawValue
+                     ? "Parakeet transcribes 25 European languages and detects the language itself. For other languages, or translation, use Whisper. To write in another language with any engine, use AI → Write in."
+                     : "Translation needs a multilingual Whisper model (not the English-only ones).")
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
-            if engine == STTEngineKind.whisperKit.rawValue {
+            if engine == STTEngineKind.parakeet.rawValue {
+                EmptyView()
+            } else if engine == STTEngineKind.whisperKit.rawValue {
                 Section {
                     Picker("Model", selection: $model) {
                         ForEach(WhisperModelOption.recommended) { Text($0.label).tag($0.id) }
@@ -303,7 +339,7 @@ struct TextToSpeechSettings: View {
                     }
                 }
             } footer: {
-                Text("Select text anywhere and press \(HotKeys.speakSelection.label) to hear it. Press again to stop.")
+                Text("Select text anywhere and press \(ShortcutAction.speakSelection.shortcut.label) to hear it. Press again to stop.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 

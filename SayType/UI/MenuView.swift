@@ -13,7 +13,7 @@ struct MenuView: View {
                 Toggle("", isOn: $controller.enabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
-                    .help("Turn dictation on or off (\(HotKeys.toggleListening.label))")
+                    .help("Turn dictation on or off (\(ShortcutAction.toggleDictation.shortcut.label))")
             }
 
             statusRow
@@ -35,7 +35,7 @@ struct MenuView: View {
                 if !controller.ttsStatus.isEmpty {
                     Label(controller.ttsStatus, systemImage: "speaker.wave.2").font(.caption)
                 }
-                Text("\(HotKeys.toggleListening.label) on/off   ·   \(HotKeys.speakSelection.label) read selection aloud")
+                Text("\(ShortcutAction.toggleDictation.shortcut.label) on/off  ·  \(ShortcutAction.pushToTalk.shortcut.label) push to talk  ·  \(ShortcutAction.speakSelection.shortcut.label) read aloud  ·  \(ShortcutAction.editSelection.shortcut.label) edit by voice")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -99,7 +99,7 @@ struct MenuView: View {
         case .listening: return "Listening in \(focus.frontAppName)"
         case .hearing: return "Hearing you…"
         case .transcribing: return "Typing…"
-        case .speaking: return "Reading aloud (\(HotKeys.speakSelection.label) to stop)"
+        case .speaking: return "Reading aloud (\(ShortcutAction.speakSelection.shortcut.label) to stop)"
         case .disabled: return "Off"
         default: return ""
         }
