@@ -17,7 +17,7 @@ settings:
     SWIFT_VERSION: "5.0"
     DEVELOPMENT_TEAM: VQDNM3C2SW
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "1.0.0"
+    MARKETING_VERSION: "1.0.1"
     CURRENT_PROJECT_VERSION: "1"
 targets:
   SayType:
@@ -33,6 +33,8 @@ targets:
       path: SayType/Support/Info.plist
       properties:
         CFBundleDisplayName: SayType
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
         LSUIElement: true
         ITSAppUsesNonExemptEncryption: false
