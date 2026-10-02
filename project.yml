@@ -64,6 +64,8 @@ targets:
       - SayType/STT
       - SayType/Audio
       - SayType/App/Settings.swift
+      - SayType/Transcribe/TranscriptFormats.swift
+      - SayType/Transcribe/AudioDecoder.swift
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
