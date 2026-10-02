@@ -243,6 +243,16 @@ final class AppController: ObservableObject {
     }
 
     private func checkMedia() {
+        // The engine can die without telling us (device switch, sleep). Restart it, or retry if the
+        // microphone isn't available yet, so "Listening" always means the mic is really on.
+        if audio.isStalled {
+            log.notice("mic: no audio for 2s, restarting")
+            audio.restart()
+            updateStatus()
+        } else if !audio.isRunning, stopMicWork == nil {
+            refresh()
+        }
+
         // Pick up a microphone permission granted later in System Settings.
         if !micPermission, AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
             micPermission = true
