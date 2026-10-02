@@ -6,6 +6,7 @@ import Foundation
 final class LocalServerSTTEngine: SpeechToTextEngine {
     let baseURL: URL
     let model: String
+    var translate = false
 
     var displayName: String { "Server · \(model)" }
 
@@ -15,7 +16,8 @@ final class LocalServerSTTEngine: SpeechToTextEngine {
     }
 
     private var endpoint: URL {
-        baseURL.path.hasSuffix("/transcriptions") ? baseURL : baseURL.appendingPathComponent("v1/audio/transcriptions")
+        if baseURL.path.hasSuffix("/transcriptions") || baseURL.path.hasSuffix("/translations") { return baseURL }
+        return baseURL.appendingPathComponent(translate ? "v1/audio/translations" : "v1/audio/transcriptions")
     }
 
     func prepare(progress: @escaping (Double, String) -> Void) async throws {

@@ -4,12 +4,14 @@ import SwiftUI
 /// Which speech-to-text backend to use.
 enum STTEngineKind: String, CaseIterable, Identifiable, Codable {
     case whisperKit       // bundled on-device Whisper (Core ML)
+    case parakeet         // NVIDIA Parakeet TDT v3 on the Neural Engine (25 European languages, very fast)
     case localServer      // any OpenAI-compatible server on this Mac (whisper.cpp, speaches, mlx…)
 
     var id: String { rawValue }
     var label: String {
         switch self {
         case .whisperKit: return "Built-in Whisper (on-device)"
+        case .parakeet: return "Parakeet v3 (on-device, fastest)"
         case .localServer: return "Local server (OpenAI-compatible)"
         }
     }

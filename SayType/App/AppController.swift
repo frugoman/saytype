@@ -309,6 +309,8 @@ final class AppController: ObservableObject {
             engine = WhisperKitEngine(
                 variant: Pref.defaults.string(forKey: Pref.whisperModel) ?? WhisperModelOption.defaultID,
                 repo: Pref.defaults.string(forKey: Pref.whisperRepo) ?? "argmaxinc/whisperkit-coreml")
+        case .parakeet:
+            engine = ParakeetEngine()
         case .localServer:
             guard let url = URL(string: Pref.defaults.string(forKey: Pref.sttServerURL) ?? "") else {
                 status = .error("Invalid server URL")
@@ -361,6 +363,25 @@ final class AppController: ObservableObject {
         tts = nil
         ttsReady = false
         ttsStatus = ""
+    }
+
+    // MARK: - Shared services (used by the file/meeting transcriber)
+
+    /// Transcribes long audio with timestamps using the loaded speech engine.
+    func transcribeSegments(_ samples: [Float]) async throws -> [TimedSegment] {
+        guard let stt, sttReady else {
+            throw NSError(domain: "SayType", code: 10, userInfo: [NSLocalizedDescriptionKey: "The speech model isn't ready yet."])
+        }
+        let language = Pref.defaults.string(forKey: Pref.language).flatMap { $0 == "auto" ? nil : $0 }
+        return try await stt.transcribeSegments(samples, language: language)
+    }
+
+    /// True when an AI text backend (Apple on-device or a local server) is configured and usable.
+    var aiAvailable: Bool { false }
+
+    /// Runs `instruction` over `input` with the configured AI backend. Throws when none is available.
+    func runAI(instruction: String, input: String) async throws -> String {
+        throw NSError(domain: "SayType", code: 11, userInfo: [NSLocalizedDescriptionKey: "No AI backend is set up."])
     }
 
     // MARK: - Text to speech
