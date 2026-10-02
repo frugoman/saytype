@@ -55,10 +55,13 @@
 		CC405ED1FB34DEA0FB727250 /* FeatureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53A9DA68605623F1DDCC3FC /* FeatureTests.swift */; };
 		D0DE736F9417A90C2735CDC0 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD28D69B1D3FE0CA083A873 /* Settings.swift */; };
 		DABAEB6AE0B0B71315FB3E67 /* Links.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D1DB7E69368667B4367568D /* Links.swift */; };
+		E2F9F5BCEF07A4D283B3761B /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 2DE9BA6B1D35D914742FE182 /* FluidAudio */; };
 		E613E86C6F9AF53DD812DE5D /* ParakeetEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631E18269B44FB8E24A9E5E4 /* ParakeetEngine.swift */; };
 		F0CF8AC399CF1B9CB10E4775 /* WhisperKitEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C553187D0CE89CA76136045E /* WhisperKitEngine.swift */; };
 		F276AFE4A0328FDBB6409D5B /* SpeechToText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E66D6FDA3EE85BD826D379C /* SpeechToText.swift */; };
+		F31E59B4370194FB8E7CB76E /* ParakeetEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81D3F0B04E2024AB7C6CBC97 /* ParakeetEngineTests.swift */; };
 		F3D938134E2B817CD5C992E0 /* LocalServerSTTEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 203821E11885FCB9A72E5813 /* LocalServerSTTEngine.swift */; };
+		F615747210F53EA54AE8BD15 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 2BEEED922D4510A19DA4887F /* FluidAudio */; };
 		FD88F82548764CE3C7428FE1 /* SayTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07669D1DAD103770A3DC26E2 /* SayTypeTests.swift */; };
 		FF12D79124F88ED147E3A71E /* Vocabulary.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE9F1BC105E2404CEA5598CB /* Vocabulary.swift */; };
 		FFFFC58842148784F0CB4DB3 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CD28D69B1D3FE0CA083A873 /* Settings.swift */; };
@@ -89,6 +92,7 @@
 		770124D93D913B248D59EC12 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		77587F81EC15F4988A537E40 /* TranscriptFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptFormats.swift; sourceTree = "<group>"; };
 		7E66D6FDA3EE85BD826D379C /* SpeechToText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechToText.swift; sourceTree = "<group>"; };
+		81D3F0B04E2024AB7C6CBC97 /* ParakeetEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetEngineTests.swift; sourceTree = "<group>"; };
 		8207E6873A8F9323C65E5226 /* TranscribeWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscribeWindow.swift; sourceTree = "<group>"; };
 		856354BCA414975F0FBC1FBF /* Snippets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snippets.swift; sourceTree = "<group>"; };
 		85BAC1146F65D1220796D8BB /* AppProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppProfiles.swift; sourceTree = "<group>"; };
@@ -115,6 +119,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				585A18528D11CE8C18DBB01D /* WhisperKit in Frameworks */,
+				E2F9F5BCEF07A4D283B3761B /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +129,7 @@
 			files = (
 				4BA3796CCF417F5FEC354FCA /* WhisperKit in Frameworks */,
 				3F244B777318E3634A3E2AD9 /* TTSKit in Frameworks */,
+				F615747210F53EA54AE8BD15 /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -231,6 +237,7 @@
 			isa = PBXGroup;
 			children = (
 				A53A9DA68605623F1DDCC3FC /* FeatureTests.swift */,
+				81D3F0B04E2024AB7C6CBC97 /* ParakeetEngineTests.swift */,
 				07669D1DAD103770A3DC26E2 /* SayTypeTests.swift */,
 				237F51E431BB7B54A5FA2B9B /* TranscribeTests.swift */,
 			);
@@ -365,6 +372,7 @@
 			packageProductDependencies = (
 				92BA7080187CF2650BD6D28F /* WhisperKit */,
 				6D0E12BF765A007BB26A5BB2 /* TTSKit */,
+				2BEEED922D4510A19DA4887F /* FluidAudio */,
 			);
 			productName = SayType;
 			productReference = 257A891C9FBCA5B3FF9AE942 /* SayType.app */;
@@ -384,6 +392,7 @@
 			name = SayTypeTests;
 			packageProductDependencies = (
 				EDCE33DD21355C8A9C993336 /* WhisperKit */,
+				2DE9BA6B1D35D914742FE182 /* FluidAudio */,
 			);
 			productName = SayTypeTests;
 			productReference = AA4B58538F23BBAA4687812C /* SayTypeTests.xctest */;
@@ -419,6 +428,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				120679236D054BFC8C52F689 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
+				39819FA3B428C2683E6D3CFF /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D63920C6F46019D5D84996C /* Products */;
@@ -456,6 +466,7 @@
 				9DB244E66AAB48BFDA222727 /* HistoryStore.swift in Sources */,
 				F3D938134E2B817CD5C992E0 /* LocalServerSTTEngine.swift in Sources */,
 				E613E86C6F9AF53DD812DE5D /* ParakeetEngine.swift in Sources */,
+				F31E59B4370194FB8E7CB76E /* ParakeetEngineTests.swift in Sources */,
 				FD88F82548764CE3C7428FE1 /* SayTypeTests.swift in Sources */,
 				FFFFC58842148784F0CB4DB3 /* Settings.swift in Sources */,
 				8902741C9E99E3390A499D3B /* Snippets.swift in Sources */,
@@ -844,9 +855,27 @@
 				minimumVersion = 1.1.0;
 			};
 		};
+		39819FA3B428C2683E6D3CFF /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.17.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		2BEEED922D4510A19DA4887F /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 39819FA3B428C2683E6D3CFF /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
+		2DE9BA6B1D35D914742FE182 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 39819FA3B428C2683E6D3CFF /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
 		6D0E12BF765A007BB26A5BB2 /* TTSKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 120679236D054BFC8C52F689 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
