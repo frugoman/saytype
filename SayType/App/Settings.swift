@@ -115,6 +115,7 @@ enum Pref {
     static let listenMode = "listenMode"
     static let soundFeedback = "soundFeedback"
     static let showOverlay = "showOverlay"
+    static let showCaretIndicator = "showCaretIndicator"
     static let historyEnabled = "historyEnabled"
     static let voiceCommands = "voiceCommands"
     static let spokenPunctuation = "spokenPunctuation"
@@ -151,6 +152,7 @@ enum Pref {
             listenMode: ListenMode.auto.rawValue,
             soundFeedback: false,
             showOverlay: true,
+            showCaretIndicator: true,
             historyEnabled: true,
             voiceCommands: true,
             spokenPunctuation: false,

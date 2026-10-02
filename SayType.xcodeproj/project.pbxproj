@@ -37,6 +37,7 @@
 		886FF7011A2726DE8F280CB4 /* CleanupPrompts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B4D156A49A2AB3D1D74878 /* CleanupPrompts.swift */; };
 		8902741C9E99E3390A499D3B /* Snippets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856354BCA414975F0FBC1FBF /* Snippets.swift */; };
 		92E87D1615A9C96A920EED7E /* TranscriptFormats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77587F81EC15F4988A537E40 /* TranscriptFormats.swift */; };
+		985A93B57C7CBAEBDFAAF0CB /* CaretIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8653ABFF918C2E034E762BA9 /* CaretIndicator.swift */; };
 		98F4632B21324A18527CBD6D /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC81114F2AEB17B8CC86392 /* AudioCapture.swift */; };
 		9DB244E66AAB48BFDA222727 /* HistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2885FCAF0D62077671D61BD7 /* HistoryStore.swift */; };
 		A08987C5DF9E0F05AEE24443 /* VoiceActivityDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 202B7DB624624534035A3CFA /* VoiceActivityDetector.swift */; };
@@ -110,6 +111,7 @@
 		8207E6873A8F9323C65E5226 /* TranscribeWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscribeWindow.swift; sourceTree = "<group>"; };
 		856354BCA414975F0FBC1FBF /* Snippets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snippets.swift; sourceTree = "<group>"; };
 		85BAC1146F65D1220796D8BB /* AppProfiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppProfiles.swift; sourceTree = "<group>"; };
+		8653ABFF918C2E034E762BA9 /* CaretIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaretIndicator.swift; sourceTree = "<group>"; };
 		891741B0FB553A27D4B93E15 /* SayType.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SayType.entitlements; sourceTree = "<group>"; };
 		9EC81114F2AEB17B8CC86392 /* AudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
 		A53A9DA68605623F1DDCC3FC /* FeatureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTests.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 		F961471919EDE4CAED229BFA /* Overlay */ = {
 			isa = PBXGroup;
 			children = (
+				8653ABFF918C2E034E762BA9 /* CaretIndicator.swift */,
 				D366B67C2485A8B1F2486B22 /* RecordingOverlay.swift */,
 			);
 			path = Overlay;
@@ -505,6 +508,7 @@
 				80BC4DA0B08694906F004253 /* AudioCapture.swift in Sources */,
 				A31B3AB629553B6E8DE705F4 /* AudioDecoder.swift in Sources */,
 				CB92C57DE408DE26A2BF02A8 /* AutomationCommand.swift in Sources */,
+				985A93B57C7CBAEBDFAAF0CB /* CaretIndicator.swift in Sources */,
 				B443D3DCC24122E14C2C4DF8 /* CleanupPrompts.swift in Sources */,
 				2ED771AE3C510D33672D40F4 /* FocusMonitor.swift in Sources */,
 				5539C1B4FA3E952DC8886A8B /* HistoryStore.swift in Sources */,

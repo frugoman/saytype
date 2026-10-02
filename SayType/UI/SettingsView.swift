@@ -30,6 +30,7 @@ struct GeneralSettings: View {
     @AppStorage(Pref.listenMode) private var listenMode = ListenMode.auto.rawValue
     @AppStorage(Pref.soundFeedback) private var sounds = false
     @AppStorage(Pref.showOverlay) private var overlay = true
+    @AppStorage(Pref.showCaretIndicator) private var caretIndicator = true
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var alwaysListen: [String] = Pref.defaults.stringArray(forKey: Pref.alwaysListenApps) ?? []
 
@@ -49,6 +50,7 @@ struct GeneralSettings: View {
                     ForEach(ListenMode.allCases) { Text($0.label).tag($0.rawValue) }
                 }
                 .pickerStyle(.radioGroup)
+                Toggle("Show a mic badge next to the text cursor", isOn: $caretIndicator)
                 Toggle("Show a recording pill on screen", isOn: $overlay)
                 Toggle("Play a sound when recording starts and stops", isOn: $sounds)
             } header: {

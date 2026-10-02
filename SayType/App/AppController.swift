@@ -58,6 +58,12 @@ final class AppController: ObservableObject {
     let history = HistoryStore()
 
     private let audio = AudioCapture()
+    private let caretIndicator = CaretIndicator()
+
+    /// Live microphone level for the caret badge; very low when the mic isn't running.
+    var micLevelDB: Float { audio.isRunning ? audio.levelDB : -90 }
+    /// True when the mic is supposed to be on but no audio is arriving.
+    var micStalled: Bool { audio.isStalled }
     private let vad = VoiceActivityDetector()
     private let vadQueue = DispatchQueue(label: "SayType.vad", qos: .userInitiated)
     private let inserter = TextInserter()
@@ -125,6 +131,7 @@ final class AppController: ObservableObject {
             .store(in: &cancellables)
         registerHotKeys()
         trackFrontmostApp()
+        caretIndicator.start(controller: self)
 
         mediaTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.checkMedia() }

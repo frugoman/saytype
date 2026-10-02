@@ -16,6 +16,8 @@ final class AudioCapture {
     /// When audio last arrived from the microphone; used to notice a silently stopped engine.
     private var lastSampleAt = Date()
     private var observers: [NSObjectProtocol] = []
+    /// Input level of the latest audio, in dBFS, for the on-screen indicator.
+    private(set) var levelDB: Float = -90
 
     /// True when the engine claims to be running but no audio has arrived for a while.
     var isStalled: Bool { isRunning && Date().timeIntervalSince(lastSampleAt) > 2 }
@@ -112,6 +114,9 @@ final class AudioCapture {
         }
         guard error == nil, let data = out.floatChannelData, out.frameLength > 0 else { return }
         lastSampleAt = Date()
-        onSamples?(Array(UnsafeBufferPointer(start: data[0], count: Int(out.frameLength))))
+        let samples = Array(UnsafeBufferPointer(start: data[0], count: Int(out.frameLength)))
+        let meanSquare = samples.reduce(Float(0)) { $0 + $1 * $1 } / Float(samples.count)
+        levelDB = 10 * log10(max(meanSquare, 1e-9))
+        onSamples?(samples)
     }
 }
