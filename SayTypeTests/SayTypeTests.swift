@@ -3,7 +3,7 @@ import XCTest
 @MainActor
 final class VocabularyTests: XCTestCase {
     private func store(_ entries: [VocabularyEntry]) -> VocabularyStore {
-        let s = VocabularyStore()
+        let s = VocabularyStore(file: FileManager.default.temporaryDirectory.appendingPathComponent("vocab-\(UUID()).json"))
         s.entries = entries
         return s
     }
@@ -42,6 +42,8 @@ final class FilterTests: XCTestCase {
         XCTAssertNil(TranscriptFilter.clean("[BLANK_AUDIO]", prompt: nil))
         XCTAssertNil(TranscriptFilter.clean("Terms: GitHub, TypeScript", prompt: "Software dev. Terms: GitHub, TypeScript, JSON"))
         XCTAssertEqual(TranscriptFilter.clean("  Ship it  now. ", prompt: nil), "Ship it now.")
+        XCTAssertEqual(TranscriptFilter.clean("Ah, scratch there. (I'm not sure how to translate that)", prompt: nil), "Ah, scratch there.")
+        XCTAssertNil(TranscriptFilter.clean("(laughs)", prompt: nil))
     }
 }
 
@@ -112,7 +114,7 @@ final class WhisperIntegrationTests: XCTestCase {
         XCTAssertTrue(text.contains("GitHub"), text)
 
         // A taught mishearing fixes the small model's mistake.
-        let vocab = await VocabularyStore()
+        let vocab = await VocabularyStore(file: FileManager.default.temporaryDirectory.appendingPathComponent("vocab-\(UUID()).json"))
         await MainActor.run { vocab.entries = [VocabularyEntry(term: "pull request", soundsLike: ["poll request"])] }
         let fixed = await vocab.apply(to: text)
         await MainActor.run { vocab.entries = [] }

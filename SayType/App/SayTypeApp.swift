@@ -10,6 +10,7 @@ struct SayTypeApp: App {
             MenuView()
                 .environmentObject(controller)
                 .environmentObject(controller.focus)
+                .environmentObject(controller.history)
         } label: {
             MenuBarIcon(status: controller.status)
         }
@@ -19,15 +20,29 @@ struct SayTypeApp: App {
             SettingsView()
                 .environmentObject(controller)
                 .environmentObject(controller.vocabulary)
+                .environmentObject(controller.snippets)
+                .environmentObject(controller.profiles)
+                .environmentObject(controller.history)
         }
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if UISnapshot.active {
+            UISnapshot.runIfRequested()
+            return
+        }
         AppController.shared.start()
         if !OnboardingWindow.isComplete || AppController.shared.needsSetup {
             OnboardingWindow.shared.show()
+        }
+    }
+
+    /// `saytype://…` links from the command-line tool, Raycast, Shortcuts and scripts.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            if let command = AutomationCommand.parse(url) { AppController.shared.run(command) }
         }
     }
 }

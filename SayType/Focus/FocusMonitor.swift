@@ -17,6 +17,7 @@ enum FocusState: Equatable {
 final class FocusMonitor: ObservableObject {
     @Published private(set) var state: FocusState = .none
     @Published private(set) var frontAppName: String = ""
+    @Published private(set) var frontBundleID: String?
     private(set) var focusedElement: AXUIElement?
 
     private var timer: Timer?
@@ -62,6 +63,7 @@ final class FocusMonitor: ObservableObject {
             return
         }
         frontAppName = app.localizedName ?? ""
+        frontBundleID = app.bundleIdentifier
         let pid = app.processIdentifier
         enableAccessibilityTree(for: pid)
 

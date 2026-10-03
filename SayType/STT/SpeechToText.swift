@@ -1,13 +1,34 @@
 import Foundation
 
 /// A speech-to-text backend. Implement this to add a new kind of model.
+/// A stretch of transcribed speech with its position in the audio, in seconds.
+struct TimedSegment: Equatable {
+    var start: Double
+    var end: Double
+    var text: String
+}
+
 protocol SpeechToTextEngine: AnyObject {
+    /// When true, speech in any language is translated to English instead of transcribed (Whisper only).
+    var translate: Bool { get set }
     /// Human-readable name shown in the menu.
     var displayName: String { get }
     /// Download / load whatever the engine needs. `progress` is 0…1 when known.
     func prepare(progress: @escaping (Double, String) -> Void) async throws
     /// Transcribe 16 kHz mono audio. `prompt` biases the vocabulary, `language` is a Whisper code or nil for auto.
     func transcribe(_ audio: [Float], prompt: String?, language: String?) async throws -> String
+    /// Transcribe long audio (a file or a meeting) with timestamps. 16 kHz mono.
+    func transcribeSegments(_ audio: [Float], language: String?) async throws -> [TimedSegment]
+}
+
+extension SpeechToTextEngine {
+    /// Engines without timestamps return the whole text as one segment.
+    func transcribeSegments(_ audio: [Float], language: String?) async throws -> [TimedSegment] {
+        let text = try await transcribe(audio, prompt: nil, language: language)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return [] }
+        return [TimedSegment(start: 0, end: Double(audio.count) / 16_000, text: text)]
+    }
 }
 
 enum TranscriptFilter {
@@ -21,7 +42,8 @@ enum TranscriptFilter {
 
     static func clean(_ raw: String, prompt: String?) -> String? {
         var text = raw
-            .replacingOccurrences(of: #"\[[A-Z_ ]+\]|\([a-z ]+\)"#, with: "", options: .regularExpression)
+            // Whisper sometimes adds annotations like "[MUSIC]", "(laughs)" or "(I'm not sure how to translate that)".
+            .replacingOccurrences(of: #"\[[^\]]{0,80}\]|\([^)]{0,100}\)"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         while text.contains("  ") { text = text.replacingOccurrences(of: "  ", with: " ") }
         guard !text.isEmpty else { return nil }

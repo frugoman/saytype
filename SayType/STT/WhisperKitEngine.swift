@@ -6,6 +6,7 @@ import WhisperKit
 final class WhisperKitEngine: SpeechToTextEngine {
     let variant: String
     let repo: String
+    var translate = false
     private var whisper: WhisperKit?
 
     var displayName: String { "Whisper · \(variant.replacingOccurrences(of: "openai_whisper-", with: ""))" }
@@ -45,7 +46,7 @@ final class WhisperKitEngine: SpeechToTextEngine {
                 .filter { $0 < tokenizer.specialTokens.specialTokenBegin }
         }
         let options = DecodingOptions(
-            task: .transcribe,
+            task: translate ? .translate : .transcribe,
             language: language,
             temperatureFallbackCount: 2,
             usePrefillPrompt: true,
@@ -62,5 +63,31 @@ final class WhisperKitEngine: SpeechToTextEngine {
             .filter { !($0.noSpeechProb > 0.6 && $0.avgLogprob < -1.0) }
             .map(\.text)
             .joined()
+    }
+
+    func transcribeSegments(_ audio: [Float], language: String?) async throws -> [TimedSegment] {
+        guard let whisper else { throw NSError(domain: "SayType", code: 2,
+                                               userInfo: [NSLocalizedDescriptionKey: "Model not loaded"]) }
+        let options = DecodingOptions(
+            task: translate ? .translate : .transcribe,
+            language: language,
+            temperatureFallbackCount: 2,
+            usePrefillPrompt: true,
+            detectLanguage: language == nil,
+            skipSpecialTokens: true,
+            withoutTimestamps: false,
+            suppressBlank: true,
+            noSpeechThreshold: 0.6,
+            chunkingStrategy: .vad
+        )
+        let results = try await whisper.transcribe(audioArray: audio, decodeOptions: options)
+        return results.flatMap(\.segments)
+            .filter { !($0.noSpeechProb > 0.6 && $0.avgLogprob < -1.0) }
+            .compactMap { segment in
+                let text = segment.text.replacingOccurrences(of: #"<\|[^|]*\|>"#, with: "", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !text.isEmpty else { return nil }
+                return TimedSegment(start: Double(segment.start), end: Double(segment.end), text: text)
+            }
     }
 }

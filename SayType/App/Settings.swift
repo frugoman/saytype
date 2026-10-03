@@ -4,12 +4,14 @@ import SwiftUI
 /// Which speech-to-text backend to use.
 enum STTEngineKind: String, CaseIterable, Identifiable, Codable {
     case whisperKit       // bundled on-device Whisper (Core ML)
+    case parakeet         // NVIDIA Parakeet TDT v3 on the Neural Engine (25 European languages, very fast)
     case localServer      // any OpenAI-compatible server on this Mac (whisper.cpp, speaches, mlx…)
 
     var id: String { rawValue }
     var label: String {
         switch self {
         case .whisperKit: return "Built-in Whisper (on-device)"
+        case .parakeet: return "Parakeet v3 (on-device, fastest)"
         case .localServer: return "Local server (OpenAI-compatible)"
         }
     }
@@ -27,6 +29,33 @@ enum TTSEngineKind: String, CaseIterable, Identifiable, Codable {
         case .system: return "macOS voices (no download)"
         case .qwen: return "Qwen3-TTS (on-device neural)"
         case .localServer: return "Local server (OpenAI-compatible)"
+        }
+    }
+}
+
+/// When SayType listens.
+enum ListenMode: String, CaseIterable, Identifiable {
+    case auto, pushToTalk, toggle
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .auto: return "Hands-free: listen whenever a text field has focus"
+        case .pushToTalk: return "Push to talk: hold the shortcut while you speak"
+        case .toggle: return "Toggle: press the shortcut to start and again to stop"
+        }
+    }
+}
+
+/// Which engine rewrites text (cleanup, voice-edit, translation, summaries).
+enum AIBackendKind: String, CaseIterable, Identifiable {
+    case apple, server
+
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .apple: return "Apple on-device model (macOS 26+, no setup)"
+        case .server: return "Local server (Ollama, LM Studio, llama.cpp, mlx_lm)"
         }
     }
 }
@@ -83,6 +112,21 @@ enum Pref {
     static let alwaysListenApps = "alwaysListenApps"
     static let pauseWhileMediaPlays = "pauseWhileMediaPlays"
     static let codeContextPrompt = "codeContextPrompt"
+    static let listenMode = "listenMode"
+    static let soundFeedback = "soundFeedback"
+    static let showOverlay = "showOverlay"
+    static let cliCommandName = "cliCommandName"
+    static let cliCommandFolder = "cliCommandFolder"
+    static let showCaretIndicator = "showCaretIndicator"
+    static let historyEnabled = "historyEnabled"
+    static let voiceCommands = "voiceCommands"
+    static let spokenPunctuation = "spokenPunctuation"
+    static let cleanupLevel = "cleanupLevel"
+    static let aiBackend = "aiBackend"
+    static let aiServerURL = "aiServerURL"
+    static let aiServerModel = "aiServerModel"
+    static let translateToEnglish = "translateToEnglish"
+    static let outputLanguage = "outputLanguage"
 
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
@@ -107,6 +151,19 @@ enum Pref {
             alwaysListenApps: [String](),
             pauseWhileMediaPlays: false,
             codeContextPrompt: true,
+            listenMode: ListenMode.auto.rawValue,
+            soundFeedback: false,
+            showOverlay: true,
+            showCaretIndicator: true,
+            historyEnabled: true,
+            voiceCommands: true,
+            spokenPunctuation: false,
+            cleanupLevel: CleanupLevel.off.rawValue,
+            aiBackend: AIBackendKind.apple.rawValue,
+            aiServerURL: "http://127.0.0.1:11434",
+            aiServerModel: "llama3.2",
+            translateToEnglish: false,
+            outputLanguage: "",
         ])
     }
 
@@ -127,6 +184,12 @@ enum AppPaths {
         return url
     }
     static var vocabularyFile: URL { support.appendingPathComponent("vocabulary.json") }
+    static var snippetsFile: URL { support.appendingPathComponent("snippets.json") }
+    static var profilesFile: URL { support.appendingPathComponent("profiles.json") }
+    static var historyFile: URL { support.appendingPathComponent("history.json") }
+    /// Plain-text copies read by the `saytype` command-line tool.
+    static var lastTranscriptFile: URL { support.appendingPathComponent("last-transcript.txt") }
+    static var statusFile: URL { support.appendingPathComponent("status.txt") }
 }
 
 /// Whisper language codes offered in the UI.
@@ -134,4 +197,33 @@ let supportedLanguages: [(code: String, name: String)] = [
     ("auto", "Auto-detect"), ("en", "English"), ("es", "Spanish"), ("pt", "Portuguese"),
     ("fr", "French"), ("de", "German"), ("it", "Italian"), ("nl", "Dutch"), ("ja", "Japanese"),
     ("zh", "Chinese"), ("ko", "Korean"), ("ru", "Russian"), ("hi", "Hindi"),
+    ("ar", "Arabic"), ("bg", "Bulgarian"), ("ca", "Catalan"), ("cs", "Czech"), ("da", "Danish"),
+    ("el", "Greek"), ("fi", "Finnish"), ("he", "Hebrew"), ("hr", "Croatian"), ("hu", "Hungarian"),
+    ("id", "Indonesian"), ("no", "Norwegian"), ("pl", "Polish"), ("ro", "Romanian"), ("sk", "Slovak"),
+    ("sv", "Swedish"), ("th", "Thai"), ("tr", "Turkish"), ("uk", "Ukrainian"), ("vi", "Vietnamese"),
 ]
+
+/// Languages the AI backend can be asked to write in ("Write in"), with their locale codes.
+let outputLanguages: [(name: String, code: String)] = [
+    ("English", "en"), ("Spanish", "es"), ("Portuguese", "pt"), ("French", "fr"), ("German", "de"),
+    ("Italian", "it"), ("Dutch", "nl"), ("Japanese", "ja"), ("Chinese", "zh"), ("Korean", "ko"),
+    ("Russian", "ru"), ("Hindi", "hi"), ("Arabic", "ar"), ("Polish", "pl"), ("Turkish", "tr"),
+    ("Swedish", "sv"), ("Ukrainian", "uk"),
+]
+
+/// Speech languages an engine can really transcribe. Anything else is not offered, so it can't be picked by mistake.
+func speechLanguages(for engine: STTEngineKind) -> [(code: String, name: String)] {
+    switch engine {
+    case .parakeet: return supportedLanguages.filter { $0.code == "auto" || parakeetLanguages.contains($0.code) }
+    case .whisperKit, .localServer: return supportedLanguages
+    }
+}
+
+/// Languages Parakeet v3 can transcribe. For any other language SayType uses Whisper instead.
+let parakeetLanguages: Set<String> = [
+    "en", "es", "pt", "fr", "de", "it", "nl", "ru", "bg", "cs", "da", "el", "fi", "hr", "hu", "pl", "ro", "sk", "sv", "uk",
+]
+
+func languageName(_ code: String) -> String {
+    supportedLanguages.first { $0.code == code }?.name ?? code
+}
