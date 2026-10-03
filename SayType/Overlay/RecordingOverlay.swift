@@ -26,6 +26,9 @@ final class RecordingOverlay: ObservableObject {
         }
     }
 
+    /// Sets the mode without showing the panel (used to render screenshots).
+    func preview(_ mode: Mode) { self.mode = mode }
+
     func hide() {
         hideWork?.cancel()
         panel?.orderOut(nil)
@@ -53,32 +56,58 @@ final class RecordingOverlay: ObservableObject {
     }
 }
 
-private struct OverlayView: View {
+struct OverlayView: View {
     @ObservedObject var overlay: RecordingOverlay
+    @ObservedObject private var theme = Theme.shared
     @State private var pulse = false
+    @State private var shown = false
+
+    private var tint: PlayTint {
+        switch overlay.mode {
+        case .recording: return .pink
+        case .working: return .blue
+        case .message: return .mint
+        }
+    }
 
     var body: some View {
         HStack(spacing: 10) {
             switch overlay.mode {
             case .recording(let text):
-                Circle().fill(.red).frame(width: 10, height: 10)
-                    .opacity(pulse ? 0.35 : 1)
-                    .onAppear { withAnimation(.easeInOut(duration: 0.7).repeatForever()) { pulse = true } }
+                ZStack {
+                    Circle().fill(theme.bold(.pink).opacity(0.35)).frame(width: 12, height: 12)
+                        .scaleEffect(pulse ? 2.1 : 1).opacity(pulse ? 0 : 1)
+                    Circle().fill(theme.bold(.pink)).frame(width: 12, height: 12)
+                }
+                .frame(width: 20, height: 20)
+                .onAppear {
+                    guard theme.animations, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+                    withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) { pulse = true }
+                }
                 Text(text)
             case .working(let text):
-                ProgressView().controlSize(.small)
+                ProgressView().controlSize(.small).tint(theme.bold(.blue))
                 Text(text)
             case .message(let text):
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.bold(.mint))
+                    .symbolEffect(.bounce, value: overlay.mode)
                 Text(text)
             }
         }
-        .font(.system(size: 14, weight: .medium))
+        .font(.system(size: 14, weight: .semibold, design: theme.font))
+        .foregroundStyle(theme.ink)
         .lineLimit(1)
         .padding(.horizontal, 18)
         .frame(height: 40)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.quaternary))
+        .background(Capsule().fill(.regularMaterial))
+        .background(Capsule().fill(theme.soft(tint).opacity(0.8)))
+        .overlay(Capsule().strokeBorder(theme.bold(tint).opacity(0.35), lineWidth: 1.5))
+        .shadow(color: theme.shadow, radius: 8, y: 3)
+        .scaleEffect(shown ? 1 : 0.8)
+        .opacity(shown ? 1 : 0)
+        .animation(theme.spring, value: overlay.mode)
+        .animation(theme.spring, value: shown)
+        .onAppear { shown = true }
         .frame(width: 300, height: 44)
     }
 }

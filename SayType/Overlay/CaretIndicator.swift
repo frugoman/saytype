@@ -182,29 +182,38 @@ final class CaretBadgeModel: ObservableObject {
     var onTap: () -> Void = {}
 }
 
-private struct CaretBadge: View {
+struct CaretBadge: View {
     @ObservedObject var model: CaretBadgeModel
+    @ObservedObject private var theme = Theme.shared
+    @State private var shown = false
 
     var body: some View {
         Button(action: model.onTap) {
             ZStack {
                 Circle().fill(.regularMaterial)
-                Circle().fill(color.opacity(0.16))
+                Circle().fill(tintColor.opacity(0.22))
                 // The ring grows with your voice, so you can see the mic really hears you.
                 Circle()
-                    .strokeBorder(color.opacity(model.kind == .hearing || model.kind == .listening ? 0.9 : 0.4), lineWidth: 1.5)
-                    .scaleEffect(1 + (model.kind == .hearing ? model.level * 0.18 : 0))
+                    .strokeBorder(tintColor.opacity(model.kind == .hearing || model.kind == .listening ? 0.95 : 0.45), lineWidth: 2)
+                    .scaleEffect(1 + (model.kind == .hearing ? model.level * 0.2 : 0))
                 if model.kind == .working {
-                    ProgressView().controlSize(.mini).scaleEffect(0.7)
+                    ProgressView().controlSize(.mini).scaleEffect(0.7).tint(tintColor)
                 } else {
-                    Image(systemName: symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(color)
+                    Image(systemName: symbol).font(.system(size: 12, weight: .bold)).foregroundStyle(tintColor)
+                        .contentTransition(.symbolEffect(.replace))
                 }
             }
             .frame(width: 24, height: 24)
+            .shadow(color: tintColor.opacity(0.3), radius: 3, y: 1)
+            .scaleEffect(shown ? 1 : 0.4)
+            .opacity(shown ? 1 : 0)
             .frame(width: 30, height: 30)
             .animation(.easeOut(duration: 0.08), value: model.level)
+            .animation(theme.spring, value: model.kind)
+            .animation(theme.spring, value: shown)
         }
         .buttonStyle(.plain)
+        .onAppear { shown = true }
         .help(model.hint)
     }
 
@@ -219,12 +228,12 @@ private struct CaretBadge: View {
         }
     }
 
-    private var color: Color {
+    private var tintColor: Color {
         switch model.kind {
-        case .listening, .hearing: return .green
-        case .working, .speaking: return .blue
-        case .paused, .off: return .secondary
-        case .problem: return .orange
+        case .listening, .hearing: return theme.bold(.mint)
+        case .working, .speaking: return theme.bold(.blue)
+        case .paused, .off: return theme.inkSoft
+        case .problem: return theme.bold(.peach)
         }
     }
 }
