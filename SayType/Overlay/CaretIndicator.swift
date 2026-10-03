@@ -91,12 +91,14 @@ final class CaretIndicator {
               controller.focus.state.canDictate || controller.manualRecording,
               let element = controller.focus.focusedElement,
               let location = CaretLocator.locate(in: element) else {
-            panel?.orderOut(nil)
+            if panel?.isVisible == true { panel?.orderOut(nil) }
             return
         }
-        model.kind = kind(for: controller)
-        model.level = max(0, min(1, (Double(controller.micLevelDB) + 60) / 35))
-        model.hint = hint(for: model.kind)
+        // Only publish real changes; assigning the same value still makes SwiftUI lay everything out again.
+        let newKind = kind(for: controller)
+        if model.kind != newKind { model.kind = newKind; model.hint = hint(for: newKind) }
+        let newLevel = max(0, min(1, (Double(controller.micLevelDB) + 60) / 35))
+        if abs(model.level - newLevel) > 0.04 { model.level = newLevel }
 
         if panel == nil { panel = makePanel() }
         guard let panel else { return }
@@ -161,6 +163,8 @@ final class CaretIndicator {
         p.backgroundColor = .clear
         p.hasShadow = false
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        // Without this macOS fades/zooms the panel every time it is shown or hidden, which looks like flicker.
+        p.animationBehavior = .none
         let host = NSHostingView(rootView: CaretBadge(model: model))
         host.frame = NSRect(origin: .zero, size: size)
         p.contentView = host

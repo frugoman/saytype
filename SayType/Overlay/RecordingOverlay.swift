@@ -43,6 +43,7 @@ final class RecordingOverlay: ObservableObject {
         p.hasShadow = true
         p.ignoresMouseEvents = true
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        p.animationBehavior = .none
         let host = NSHostingView(rootView: OverlayView(overlay: self))
         host.frame = NSRect(x: 0, y: 0, width: 300, height: 44)
         p.contentView = host

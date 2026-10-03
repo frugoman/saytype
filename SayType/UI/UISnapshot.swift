@@ -55,7 +55,7 @@ enum UISnapshot {
         window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         window.contentView = hosting
         window.orderFront(nil)
-        try? await Task.sleep(for: .milliseconds(700))
+        try? await Task.sleep(for: .milliseconds(1200))
         hosting.layoutSubtreeIfNeeded()
         let scale = 2
         if let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(item.size.width) * scale, pixelsHigh: Int(item.size.height) * scale,
