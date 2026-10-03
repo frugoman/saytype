@@ -130,6 +130,11 @@ final class TranscribeModel: ObservableObject {
         }
     }
 
+    /// Puts the model in a given state (used to render screenshots of each state).
+    func preview(phase: Phase, transcript: Transcript? = nil, summary: String? = nil, error: String? = nil) {
+        self.phase = phase; self.transcript = transcript; self.summary = summary; self.error = error
+    }
+
     func reset() {
         transcript = nil
         summary = nil
@@ -193,28 +198,43 @@ final class TranscribeModel: ObservableObject {
 
 // MARK: - View
 
-private struct TranscribeView: View {
+struct TranscribeView: View {
     @ObservedObject var model: TranscribeModel
     @ObservedObject private var controller = AppController.shared
+    @ObservedObject private var theme = Theme.shared
     @State private var targeted = false
 
     var body: some View {
-        VStack(spacing: 14) {
-            switch model.phase {
-            case .idle: idle
-            case .recording: RecordingView(model: model, recorder: model.recorder)
-            case .decoding, .transcribing: working
-            case .done: result
+        ZStack {
+            PlayBackdrop()
+            VStack(spacing: theme.space(14)) {
+                Group {
+                    switch model.phase {
+                    case .idle: idle
+                    case .recording: RecordingView(model: model, recorder: model.recorder)
+                    case .decoding, .transcribing: working
+                    case .done: result
+                    }
+                }
+                .transition(.scale(scale: 0.96).combined(with: .opacity))
+                if let error = model.error {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(theme.bold(.peach))
+                        .padding(theme.space(12))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: theme.radius(14), style: .continuous).fill(theme.soft(.peach)))
+                        .textSelection(.enabled)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
-            if let error = model.error {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout).foregroundStyle(.orange)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
+            .padding(theme.space(22))
         }
-        .padding(20)
         .frame(minWidth: 520, minHeight: 440)
+        .playStyle()
+        .playAnimation(value: model.phase)
+        .playAnimation(value: model.error)
+        .playAnimation(value: model.summary)
         .onDrop(of: [.fileURL], isTargeted: $targeted) { providers in
             guard let provider = providers.first, !model.isBusy else { return false }
             _ = provider.loadObject(ofClass: URL.self) { url, _ in
@@ -225,71 +245,106 @@ private struct TranscribeView: View {
     }
 
     private var idle: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 10) {
-                Image(systemName: "waveform.badge.plus").font(.system(size: 34)).foregroundStyle(.secondary)
-                Text("Drop an audio or video file here").font(.headline)
+        VStack(spacing: theme.space(16)) {
+            VStack(spacing: theme.space(10)) {
+                Image(systemName: targeted ? "arrow.down.circle.fill" : "waveform.badge.plus")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(targeted ? theme.accent : theme.bold(.blue))
+                    .frame(width: 84, height: 84)
+                    .background(Circle().fill(targeted ? theme.accent.opacity(0.15) : theme.soft(.blue)))
+                    .contentTransition(.symbolEffect(.replace))
+                    .offset(y: targeted ? -4 : 0)
+                Text(targeted ? "Drop it!" : "Drop an audio or video file here")
+                    .font(.system(size: 19, weight: .heavy))
                 Text("mp3, m4a, wav, mp4, mov and more. It's transcribed on your Mac.")
-                    .font(.callout).foregroundStyle(.secondary)
-                Button("Choose file…", action: chooseFile).controlSize(.large)
+                    .font(.system(size: 13.5)).foregroundStyle(theme.inkSoft)
+                Button("Choose file…", action: chooseFile).padding(.top, 4)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(targeted ? Color.accentColor : Color.secondary.opacity(0.35), style: StrokeStyle(lineWidth: 2, dash: [6])))
+            .background(RoundedRectangle(cornerRadius: theme.radius(26), style: .continuous)
+                .fill(targeted ? theme.accent.opacity(0.10) : theme.card))
+            .overlay(RoundedRectangle(cornerRadius: theme.radius(26), style: .continuous)
+                .strokeBorder(targeted ? theme.accent : theme.ink.opacity(0.22),
+                              style: StrokeStyle(lineWidth: targeted ? 3 : 2, dash: [9, 7])))
+            .scaleEffect(targeted ? 1.02 : 1)
+            .shadow(color: theme.shadow, radius: targeted ? 22 : 12, y: 6)
+            .animation(theme.spring, value: targeted)
 
-            Button { model.toggleMeeting() } label: {
-                Label("Record a meeting", systemImage: "record.circle")
-            }
-            .controlSize(.large)
-            Text("Records your microphone and the sound playing on your Mac, then labels who said what.")
-                .font(.caption).foregroundStyle(.secondary)
-            if !controller.isModelReady {
-                Text("The speech model is still loading…").font(.caption).foregroundStyle(.orange)
+            PlaySection(tint: .pink) {
+                HStack(spacing: theme.space(14)) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Record a meeting").font(.system(size: 15, weight: .bold))
+                        Text("Records your microphone and the sound playing on your Mac, then labels who said what.")
+                            .font(.system(size: 12.5)).foregroundStyle(theme.inkSoft)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 8)
+                    Button { model.toggleMeeting() } label: {
+                        HStack(spacing: 7) {
+                            PulsingDot(size: 10, color: .white)
+                            Text("Record")
+                        }
+                        .padding(.horizontal, 6).padding(.vertical, 3)
+                    }
+                    .buttonStyle(RecordButtonStyle())
+                }
+                if !controller.isModelReady {
+                    PlayChip(text: "The speech model is still loading…", tint: .butter, icon: "hourglass")
+                }
             }
         }
     }
 
     private var working: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: theme.space(16)) {
             Spacer()
             ProgressView().controlSize(.large)
-            Text(model.phase == .decoding ? "Reading audio…" : "Transcribing… long recordings can take a few minutes")
-                .foregroundStyle(.secondary)
+                .frame(width: 88, height: 88)
+                .background(Circle().fill(theme.soft(.blue)))
+            Text(model.phase == .decoding ? "Reading audio…" : "Transcribing…")
+                .font(.system(size: 20, weight: .heavy))
+            if model.phase == .transcribing {
+                Text("Long recordings can take a few minutes.").font(.system(size: 13.5)).foregroundStyle(theme.inkSoft)
+            }
             Button("Cancel") { model.cancel() }
             Spacer()
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var result: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: theme.space(12)) {
             HStack {
-                Text(model.transcript?.title ?? "").font(.headline).lineLimit(1)
+                Text(model.transcript?.title ?? "").font(.system(size: 19, weight: .heavy)).lineLimit(1)
                 Spacer()
                 Button("New") { model.reset() }
             }
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: theme.space(14)) {
                     if let summary = model.summary {
-                        Text("Summary").font(.subheadline.bold())
-                        Text(summary).textSelection(.enabled)
-                        Divider()
-                        Text("Transcript").font(.subheadline.bold())
+                        PlaySection("Summary", tint: .butter) {
+                            Text(summary).font(.system(size: 14)).textSelection(.enabled)
+                        }
                     }
                     let text = model.transcript?.plainText() ?? ""
-                    Text(text.isEmpty ? "No speech was detected." : text)
-                        .textSelection(.enabled)
-                        .foregroundStyle(text.isEmpty ? .secondary : .primary)
+                    PlaySection("Transcript", tint: .blue) {
+                        Text(text.isEmpty ? "No speech was detected." : text)
+                            .font(.system(size: 14))
+                            .textSelection(.enabled)
+                            .foregroundStyle(text.isEmpty ? theme.inkSoft : theme.ink)
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 2)
             }
-            .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
-            HStack {
-                Button("Copy", action: copy)
-                Button("Save as…", action: save)
+            HStack(spacing: 8) {
+                Button { copy() } label: { Label("Copy", systemImage: "doc.on.doc") }
+                Button { save() } label: { Label("Save as…", systemImage: "square.and.arrow.down") }
                 if controller.aiAvailable {
-                    Button(model.summary == nil ? "Summarize" : "Summarize again") { model.summarize() }
-                        .disabled(model.summarizing)
+                    Button { model.summarize() } label: {
+                        Label(model.summary == nil ? "Summarize" : "Summarize again", systemImage: "sparkles")
+                    }
+                    .disabled(model.summarizing)
                     if model.summarizing { ProgressView().controlSize(.small) }
                 }
                 Spacer()
@@ -351,30 +406,85 @@ private final class FormatPicker: NSObject {
     @objc func changed(_ sender: NSPopUpButton) { onChange(sender.indexOfSelectedItem) }
 }
 
+private struct RecordButtonStyle: ButtonStyle {
+    @ObservedObject private var theme = Theme.shared
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(Capsule().fill(theme.bold(.pink)))
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+/// A red dot that pulses gently (still when animations are off).
+private struct PulsingDot: View {
+    @ObservedObject private var theme = Theme.shared
+    var size: CGFloat = 12
+    var color: Color = .red
+    @State private var on = false
+
+    var body: some View {
+        ZStack {
+            Circle().fill(color.opacity(0.35)).frame(width: size, height: size)
+                .scaleEffect(on ? 2.4 : 1).opacity(on ? 0 : 1)
+            Circle().fill(color).frame(width: size, height: size)
+        }
+        .frame(width: size, height: size)
+        .onAppear {
+            guard theme.animations, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+            withAnimation(.easeOut(duration: 1.2).repeatForever(autoreverses: false)) { on = true }
+        }
+    }
+}
+
 private struct RecordingView: View {
     @ObservedObject var model: TranscribeModel
     @ObservedObject var recorder: MeetingRecorder
+    @ObservedObject private var theme = Theme.shared
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: theme.space(16)) {
             Spacer()
-            Image(systemName: "record.circle.fill").font(.system(size: 40)).foregroundStyle(.red)
-            Text(Transcript.clock(recorder.elapsed)).font(.system(size: 34, weight: .light, design: .monospaced))
-            HStack(spacing: 8) {
-                Image(systemName: "mic.fill").foregroundStyle(.secondary)
-                ProgressView(value: min(1, Double(recorder.micLevel) * 8))
-                    .frame(width: 160)
+            ZStack {
+                Circle().fill(theme.soft(.pink)).frame(width: 96, height: 96)
+                PulsingDot(size: 28, color: Color(hex: 0xFF4D5E))
+            }
+            Text(Transcript.clock(recorder.elapsed))
+                .font(.system(size: 44, weight: .semibold, design: .rounded)).monospacedDigit()
+            HStack(spacing: 10) {
+                Image(systemName: "mic.fill").foregroundStyle(theme.bold(.pink))
+                LevelBar(level: min(1, Double(recorder.micLevel) * 8)).frame(width: 180, height: 10)
             }
             if let warning = recorder.warning {
-                Text(warning).font(.callout).foregroundStyle(.orange).multilineTextAlignment(.center)
+                Text(warning).font(.callout).foregroundStyle(theme.bold(.peach)).multilineTextAlignment(.center)
             }
             HStack {
-                Button("Stop and transcribe") { model.stopMeeting() }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
-                Button("Discard") { model.cancel() }.controlSize(.large)
+                Button { model.stopMeeting() } label: {
+                    Text("Stop and transcribe").padding(.horizontal, 8).padding(.vertical, 3)
+                }
+                .buttonStyle(.playPrimary)
+                Button("Discard") { model.cancel() }
             }
-            Text("Live dictation is paused while recording.").font(.caption).foregroundStyle(.secondary)
+            Text("Live dictation is paused while recording.").font(.caption).foregroundStyle(theme.inkSoft)
             Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct LevelBar: View {
+    @ObservedObject private var theme = Theme.shared
+    let level: Double
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(theme.ink.opacity(0.1))
+                Capsule().fill(theme.bold(.pink)).frame(width: max(10, geo.size.width * level))
+                    .animation(.easeOut(duration: 0.1), value: level)
+            }
         }
     }
 }
