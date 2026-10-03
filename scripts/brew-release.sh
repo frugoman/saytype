@@ -11,6 +11,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TAP=frugoman/homebrew-tap
+APP_REPO=frugoman/saytype
+SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application: Nicolas Frugoni (VQDNM3C2SW)}"
 BUILD="build/brew"
 VERSION="$(grep -m1 'MARKETING_VERSION' project.yml | sed -E 's/.*"(.*)".*/\1/')"
 TAG="saytype-v$VERSION"
@@ -69,9 +71,33 @@ spctl --assess --type execute --verbose=2 "$APP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 SHA=$(shasum -a 256 "$ZIP" | cut -d' ' -f1)
 
+echo "==> Building the disk image"
+DMG="$BUILD/SayType.dmg"
+rm -rf "$BUILD/dmg"
+mkdir -p "$BUILD/dmg"
+cp -R "$APP" "$BUILD/dmg/"
+ln -s /Applications "$BUILD/dmg/Applications"
+hdiutil create -volname "SayType" -srcfolder "$BUILD/dmg" -ov -format UDZO -fs HFS+ "$DMG" >/dev/null
+codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG"
+DMG_RESULT=$(xcrun notarytool submit "$DMG" --key "$KEY_PATH" --key-id "$KEY_ID" --issuer "$ISSUER_ID" --wait --timeout 30m 2>&1)
+echo "$DMG_RESULT" | tail -3
+echo "$DMG_RESULT" | grep -q "status: Accepted" || { echo "DMG notarization failed." >&2; exit 1; }
+xcrun stapler staple "$DMG"
+spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+
 echo "==> Publishing release $TAG on $TAP"
 gh release create "$TAG" "$ZIP" --repo "$TAP" --title "SayType $VERSION" \
   --notes "Install with: brew install --cask frugoman/tap/saytype"
+
+echo "==> Publishing the download on $APP_REPO"
+NOTES="$BUILD/notes.md"
+awk -v v="$VERSION" '$0 == "## " v {on=1; next} /^## / {on=0} on' CHANGELOG.md > "$NOTES"
+{
+  echo
+  echo "**Install:** \`brew install --cask frugoman/tap/saytype\`, or download \`SayType.dmg\` below, open it and drag SayType to Applications."
+  echo "Signed with a Developer ID certificate and notarized by Apple. macOS 14 or later."
+} >> "$NOTES"
+gh release create "v$VERSION" "$DMG" "$ZIP" --repo "$APP_REPO" --title "SayType $VERSION" --notes-file "$NOTES"
 
 echo "==> Updating the cask in $TAP"
 TMP=$(mktemp -d)
@@ -114,4 +140,6 @@ git -C "$TMP" commit -m "saytype $VERSION" --quiet
 git -C "$TMP" push --quiet
 rm -rf "$TMP"
 
-echo "==> Released $VERSION. Install with: brew install --cask frugoman/tap/saytype"
+echo "==> Released $VERSION."
+echo "    Homebrew: brew install --cask frugoman/tap/saytype"
+echo "    Download: https://github.com/$APP_REPO/releases/latest/download/SayType.dmg"

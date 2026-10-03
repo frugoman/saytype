@@ -6,6 +6,7 @@ SayType is free and ships through Homebrew from the public tap `frugoman/homebre
 | --- | --- |
 | Website, privacy, support | GitHub Pages: `frugoman/saytype-site` → https://frugoman.github.io/saytype-site/ |
 | Downloads (zip) | GitHub Releases on `frugoman/homebrew-tap`, tagged `saytype-v<version>` |
+| Direct download (DMG, zip) | GitHub Releases on `frugoman/saytype`, tagged `v<version>`; the DMG is always named `SayType.dmg`, so `releases/latest/download/SayType.dmg` is a stable link |
 | Install and updates | `brew install --cask frugoman/tap/saytype`, `brew upgrade --cask saytype` |
 | Tips | https://buymeacoffee.com/frugoman (`Links.coffee` in the app) |
 

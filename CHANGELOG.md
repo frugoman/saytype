@@ -27,4 +27,14 @@
   permission.
 - Automation: the `saytype` command-line tool (installed by the Homebrew cask), the `saytype://`
   URL scheme, Shortcuts actions and Raycast script commands. See `integrations/`.
+- Rename the command: Settings → Automation lets you call the command-line tool anything you like
+  (`alfred toggle` instead of `saytype toggle`).
+- A mic badge that follows the text cursor and shows what SayType is really doing, with a live
+  level. It turns orange if the microphone stops delivering audio.
+- A new look: pastel and playful, with a colour-coded sidebar, animations, a "Saved" indicator,
+  and an Appearance pane (palettes, accent colours, light and dark, corners, spacing, font).
+- Fixes: the microphone restarts after an audio device change or sleep; voice commands ignore
+  fillers like "uh"; language lists only show languages the chosen engine or AI model supports.
+- Signed with a Developer ID certificate and notarized by Apple. Download the DMG or install with
+  Homebrew.
 - SayType is open source under the MIT license.
