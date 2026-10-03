@@ -8,6 +8,11 @@ Website: <https://frugoman.github.io/saytype-site/>
 
 ## Install
 
+**Download:** [SayType.dmg](https://github.com/frugoman/saytype/releases/latest/download/SayType.dmg)
+(signed and notarized by Apple). Open it and drag SayType to Applications.
+
+**Or with Homebrew:**
+
 ```bash
 brew install --cask frugoman/tap/saytype
 ```
