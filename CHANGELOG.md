@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.4
+
+- The floating mic badge and the menu now always show the real state. A short noise (a cough, a click)
+  used to leave SayType showing "hearing" even after the microphone had turned off. When it's paused,
+  the badge says why (push-to-talk mode, audio playing, a meeting being recorded).
+- Voice commands are harder to trigger by accident: "scratch that" at the start of a sentence and
+  "delete that" in the middle of one are typed as words, and "enter", "return" and "undo" only count
+  when said on their own.
+- "Scratch that" never deletes text SayType didn't type, and there's no stray space after a new line
+  or after pressing Enter.
+- Your clipboard is restored correctly after dictations that paste more than once, and after reading
+  the selection aloud (images and files included).
+- Numbers in brackets, like a phone number's area code, are no longer removed.
+- Voice-edit instructions are never typed into your document.
+- Pressing push-to-talk twice quickly no longer mixes two recordings.
+- Read aloud: a second request while speaking no longer turns the mic back on mid-sentence.
+- Meetings: starting twice quickly can't crash, and the microphone keeps recording when the audio
+  device changes. Local speech servers get real timestamps and enough time for long files.
+- Two actions with the same shortcut are flagged in Settings.
+- Lower CPU use: the menu no longer redraws constantly.
+
 ## 1.1.3
 
 - Fixed the menu-bar popover wobbling: its background no longer animates (it kept re-laying out the
