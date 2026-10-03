@@ -151,11 +151,23 @@ struct SpeechToTextSettings: View {
                 Toggle("Translate everything to English", isOn: $translate)
                     .disabled(engine == STTEngineKind.parakeet.rawValue)
             } footer: {
-                Text(engine == STTEngineKind.parakeet.rawValue
-                     ? "Parakeet transcribes 25 European languages and detects the language itself. For other languages, or translation, use Whisper. To write in another language with any engine, use AI → Write in."
-                     : "Translation needs a multilingual Whisper model (not the English-only ones).")
-                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    if engine == STTEngineKind.parakeet.rawValue {
+                        if language != "auto", !parakeetLanguages.contains(language) {
+                            Text("Parakeet doesn't support \(languageName(language)). SayType uses Whisper for it instead\(controller.fallbackMessage.isEmpty ? "." : ": \(controller.fallbackMessage)")")
+                                .foregroundStyle(.orange)
+                        } else if language == "auto" {
+                            Text("With Auto-detect, Parakeet only recognises its 25 European languages. For Japanese, Chinese, Korean, Arabic, Hindi and others, choose the language above or use Whisper.")
+                        } else {
+                            Text("Parakeet transcribes 25 European languages. Choose another language above and SayType switches to Whisper for it automatically.")
+                        }
+                    } else {
+                        Text("Translation needs a multilingual Whisper model (not the English-only ones).")
+                    }
+                }
+                .font(.caption).foregroundStyle(.secondary)
             }
+            .onChange(of: language) { controller.prepareFallbackIfNeeded() }
 
             if engine == STTEngineKind.parakeet.rawValue {
                 Section {

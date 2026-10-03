@@ -206,3 +206,12 @@ let outputLanguages: [String] = [
     "English", "Spanish", "Portuguese", "French", "German", "Italian", "Dutch", "Japanese", "Chinese",
     "Korean", "Russian", "Hindi", "Arabic", "Polish", "Turkish", "Swedish", "Ukrainian",
 ]
+
+/// Languages Parakeet v3 can transcribe. For any other language SayType uses Whisper instead.
+let parakeetLanguages: Set<String> = [
+    "en", "es", "pt", "fr", "de", "it", "nl", "ru", "bg", "cs", "da", "el", "fi", "hr", "hu", "pl", "ro", "sk", "sv", "uk",
+]
+
+func languageName(_ code: String) -> String {
+    supportedLanguages.first { $0.code == code }?.name ?? code
+}

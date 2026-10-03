@@ -72,6 +72,11 @@ final class AppController: ObservableObject {
 
     private var stt: SpeechToTextEngine?
     private var sttReady = false
+    /// Whisper, loaded on demand when Parakeet is selected but the language is one it can't do (Japanese, Chinese…).
+    private var fallbackSTT: WhisperKitEngine?
+    private var fallbackReady = false
+    private var fallbackLoading = false
+    @Published private(set) var fallbackMessage = ""
     private var tts: TextToSpeechEngine?
     private var ttsReady = false
     private var isSpeaking = false
@@ -330,8 +335,37 @@ final class AppController: ObservableObject {
         Pref.defaults.string(forKey: Pref.language).flatMap { $0 == "auto" ? nil : $0 }
     }
 
+    /// The engine for a language: the selected one, or Whisper when Parakeet can't handle that language.
+    private func engine(for language: String?) -> SpeechToTextEngine? {
+        guard stt is ParakeetEngine, let language, !parakeetLanguages.contains(language) else { return stt }
+        return fallbackReady ? fallbackSTT : nil
+    }
+
+    /// Loads Whisper in the background when the selected language needs it.
+    func prepareFallbackIfNeeded() {
+        guard stt is ParakeetEngine, !fallbackReady, !fallbackLoading else { return }
+        let languages = Set([language].compactMap { $0 } + profiles.profiles.compactMap(\.language))
+        guard languages.contains(where: { $0 != "auto" && !parakeetLanguages.contains($0) }) else { return }
+        fallbackLoading = true
+        let engine = WhisperKitEngine(variant: WhisperModelOption.defaultID, repo: "argmaxinc/whisperkit-coreml")
+        fallbackSTT = engine
+        Task {
+            do {
+                try await engine.prepare { [weak self] fraction, _ in
+                    Task { @MainActor in self?.fallbackMessage = "Loading Whisper for languages Parakeet doesn't support… \(Int(fraction * 100))%" }
+                }
+                fallbackReady = true
+                fallbackMessage = ""
+            } catch {
+                fallbackMessage = "Couldn't load Whisper: \(error.localizedDescription)"
+                fallbackSTT = nil
+            }
+            fallbackLoading = false
+        }
+    }
+
     private func handle(_ samples: [Float], target: Target?) async {
-        guard let stt, sttReady else { return }
+        guard sttReady else { return }
         status = .transcribing
         defer {
             status = .idle
@@ -349,11 +383,18 @@ final class AppController: ObservableObject {
             let extra = settings.extraTerms.trimmingCharacters(in: .whitespacesAndNewlines)
             if !extra.isEmpty { prompt = (prompt.map { $0 + " " } ?? "") + "Also: " + extra + "." }
         }
+        let spoken = teaching ? language : settings.language
+        guard let stt = engine(for: spoken) else {
+            prepareFallbackIfNeeded()
+            log.notice("stt: Whisper isn't loaded yet for \(spoken ?? "auto", privacy: .public)")
+            RecordingOverlay.shared.show(.message("Loading Whisper for \(spoken.map(languageName) ?? "this language")…"), hideAfter: 4)
+            return
+        }
         stt.translate = Pref.defaults.bool(forKey: Pref.translateToEnglish) && !teaching
 
         do {
             let start = Date()
-            let raw = try await stt.transcribe(samples, prompt: prompt, language: teaching ? language : settings.language)
+            let raw = try await stt.transcribe(samples, prompt: prompt, language: spoken)
             log.notice("stt: \(raw.count, privacy: .public) chars in \(String(format: "%.1f", Date().timeIntervalSince(start)), privacy: .public)s: \(raw, privacy: .private)")
             guard let cleaned = TranscriptFilter.clean(raw, prompt: prompt) else {
                 log.notice("stt: dropped as noise/hallucination")
@@ -735,6 +776,7 @@ final class AppController: ObservableObject {
             sttReady = true
             status = .idle
             refresh()
+            prepareFallbackIfNeeded()
         } catch {
             guard stt === engine else { return }
             log.error("STT load failed: \(String(describing: error), privacy: .public)")
@@ -772,7 +814,8 @@ final class AppController: ObservableObject {
 
     /// Transcribes long audio with timestamps using the loaded speech engine.
     func transcribeSegments(_ samples: [Float]) async throws -> [TimedSegment] {
-        guard let stt, sttReady else {
+        guard sttReady, let stt = engine(for: language) else {
+            prepareFallbackIfNeeded()
             throw NSError(domain: "SayType", code: 10, userInfo: [NSLocalizedDescriptionKey: "The speech model isn't ready yet."])
         }
         stt.translate = Pref.defaults.bool(forKey: Pref.translateToEnglish)
