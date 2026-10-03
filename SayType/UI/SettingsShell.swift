@@ -59,7 +59,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     ]
 }
 
-/// The settings window: a colourful sidebar (or tabs along the top, if you prefer) and a page of cards.
+/// The settings window: a colourful sidebar and a page of cards.
 struct SettingsView: View {
     @ObservedObject private var theme = Theme.shared
     @AppStorage("settings.pane") private var paneID = SettingsPane.general.rawValue
@@ -70,16 +70,9 @@ struct SettingsView: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             PlayBackdrop()
-            if theme.sidebar {
-                HStack(spacing: 0) {
-                    sidebar
-                    content
-                }
-            } else {
-                VStack(spacing: 0) {
-                    topTabs
-                    content
-                }
+            HStack(spacing: 0) {
+                sidebar
+                content
             }
             SaveIndicator().padding(14)
         }
@@ -165,30 +158,5 @@ struct SettingsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: Top tabs
-
-    private var topTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(SettingsPane.allCases) { p in
-                    let selected = p == pane
-                    Button { select(p) } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: p.icon).font(.system(size: 11.5, weight: .bold))
-                            Text(p.title).font(.system(size: 12.5, weight: .semibold))
-                        }
-                        .foregroundStyle(selected ? Color.white : theme.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 7)
-                        .background {
-                            Capsule().fill(selected ? theme.bold(p.tint) : theme.soft(p.tint).opacity(0.7))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 18).padding(.vertical, 12)
-        }
     }
 }

@@ -102,8 +102,7 @@ struct AppearanceSettings: View {
                 }
             }
 
-            PlaySection("Layout and motion", tint: .mint) {
-                Toggle("Sidebar on the left (off puts tabs along the top)", isOn: $theme.sidebar)
+            PlaySection("Background and motion", tint: .mint) {
                 Toggle("Floating shapes in the background", isOn: $theme.shapes)
                 if theme.shapes {
                     LabeledContent("Shape strength") {
