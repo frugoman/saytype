@@ -29,6 +29,10 @@ struct SayTypeApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if UISnapshot.active {
+            UISnapshot.runIfRequested()
+            return
+        }
         AppController.shared.start()
         if !OnboardingWindow.isComplete || AppController.shared.needsSetup {
             OnboardingWindow.shared.show()

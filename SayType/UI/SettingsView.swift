@@ -2,23 +2,6 @@ import AVFoundation
 import ServiceManagement
 import SwiftUI
 
-struct SettingsView: View {
-    var body: some View {
-        TabView {
-            GeneralSettings().tabItem { Label("General", systemImage: "gearshape") }
-            SpeechToTextSettings().tabItem { Label("Voice → Text", systemImage: "waveform") }
-            VocabularySettings().tabItem { Label("Vocabulary", systemImage: "character.book.closed") }
-            CommandsSettings().tabItem { Label("Commands", systemImage: "text.badge.plus") }
-            ProfileSettings().tabItem { Label("Apps", systemImage: "app.badge") }
-            AISettings().tabItem { Label("AI", systemImage: "sparkles") }
-            HistorySettings().tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
-            TextToSpeechSettings().tabItem { Label("Text → Voice", systemImage: "speaker.wave.2") }
-            AboutSettings().tabItem { Label("About", systemImage: "info.circle") }
-        }
-        .frame(width: 620, height: 560)
-    }
-}
-
 // MARK: - General
 
 struct GeneralSettings: View {
