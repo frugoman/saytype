@@ -119,6 +119,7 @@ enum Pref {
     static let cliCommandFolder = "cliCommandFolder"
     static let showCaretIndicator = "showCaretIndicator"
     static let historyEnabled = "historyEnabled"
+    static let historyLimit = "historyLimit"
     static let voiceCommands = "voiceCommands"
     static let spokenPunctuation = "spokenPunctuation"
     static let cleanupLevel = "cleanupLevel"
@@ -156,6 +157,7 @@ enum Pref {
             showOverlay: true,
             showCaretIndicator: true,
             historyEnabled: true,
+            historyLimit: 10,
             voiceCommands: true,
             spokenPunctuation: false,
             cleanupLevel: CleanupLevel.off.rawValue,

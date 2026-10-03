@@ -551,6 +551,7 @@ struct HistorySettings: View {
     @EnvironmentObject var controller: AppController
     @ObservedObject private var theme = Theme.shared
     @AppStorage(Pref.historyEnabled) private var enabled = true
+    @AppStorage(Pref.historyLimit) private var limit = 10
     @State private var query = ""
     @State private var confirmClear = false
     @State private var copied: UUID?
@@ -560,8 +561,14 @@ struct HistorySettings: View {
             PlaySection(tint: .mint) {
                 Toggle("Keep a history of what I dictate", isOn: $enabled)
                     .onChange(of: enabled) { _, on in if !on { history.clear() } }
+                if enabled {
+                    Picker("Items to keep", selection: $limit) {
+                        ForEach([5, 10, 25, 50, 100, 500, 1000], id: \.self) { Text("\($0)").tag($0) }
+                    }
+                    .onChange(of: limit) { _, _ in history.applyLimit() }
+                }
             } footer: {
-                Text("Text only, never audio. It stays on this Mac in SayType's folder and is never uploaded. Turning this off also deletes it.")
+                Text("Text only, never audio. It stays on this Mac in SayType's folder and is never uploaded. Only the most recent items are kept; lowering the number deletes the older ones. Turning this off also deletes it.")
             }
 
             PlaySection(tint: .blue) {

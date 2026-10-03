@@ -139,6 +139,18 @@ final class HistoryTests: XCTestCase {
         XCTAssertEqual(store.entries.count, 1)
     }
 
+    func testHistoryKeepsOnlyTheLimit() {
+        let (store, file, last) = makeStore()
+        defer { try? FileManager.default.removeItem(at: file); try? FileManager.default.removeItem(at: last); Pref.defaults.set(10, forKey: Pref.historyLimit) }
+        Pref.defaults.set(3, forKey: Pref.historyLimit)
+        for i in 1...5 { store.add("item \(i)", app: "Notes") }
+        XCTAssertEqual(store.entries.map(\.text), ["item 5", "item 4", "item 3"])
+        Pref.defaults.set(2, forKey: Pref.historyLimit)
+        store.applyLimit()
+        XCTAssertEqual(store.entries.count, 2)
+        XCTAssertEqual(HistoryStore(file: file, lastTranscriptFile: last).entries.count, 2)
+    }
+
     func testDisabledHistoryStoresNothing() {
         let (store, file, last) = makeStore()
         defer { try? FileManager.default.removeItem(at: file); try? FileManager.default.removeItem(at: last) }

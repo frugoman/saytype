@@ -10,7 +10,10 @@ struct HistoryEntry: Codable, Identifiable, Hashable {
 /// Everything SayType typed, newest first. Text only (never audio), stored on this Mac, and optional.
 @MainActor
 final class HistoryStore: ObservableObject {
-    static let maxEntries = 1000
+    static let defaultLimit = 10
+
+    /// How many items to keep (Settings → History). Older ones are dropped.
+    var limit: Int { max(1, Pref.defaults.integer(forKey: Pref.historyLimit)) }
 
     @Published private(set) var entries: [HistoryEntry] = []
     private let file: URL
@@ -23,6 +26,7 @@ final class HistoryStore: ObservableObject {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             entries = (try? decoder.decode([HistoryEntry].self, from: data)) ?? []
+            if trim() { save() }
         }
     }
 
@@ -31,9 +35,21 @@ final class HistoryStore: ObservableObject {
     func add(_ text: String, app: String, date: Date = Date()) {
         guard isEnabled, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         entries.insert(HistoryEntry(date: date, text: text, app: app), at: 0)
-        if entries.count > Self.maxEntries { entries.removeLast(entries.count - Self.maxEntries) }
+        trim()
         save()
         if let lastFile { try? text.write(to: lastFile, atomically: true, encoding: .utf8) }
+    }
+
+    /// Drops everything beyond the limit. Returns true if anything was removed.
+    @discardableResult
+    func trim() -> Bool {
+        guard entries.count > limit else { return false }
+        entries.removeLast(entries.count - limit)
+        return true
+    }
+
+    func applyLimit() {
+        if trim() { save() }
     }
 
     func remove(_ id: HistoryEntry.ID) {
