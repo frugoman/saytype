@@ -110,7 +110,9 @@ struct MenuView: View {
 
     private var statusText: String {
         switch controller.status {
-        case .idle: return focus.state == .secure ? "Password field — not listening" : "Waiting for a text field"
+        case .idle:
+            if focus.state == .secure { return "Password field — not listening" }
+            return controller.pauseReason ?? "Waiting for a text field"
         case .listening: return "Listening in \(focus.frontAppName)"
         case .hearing: return "Hearing you…"
         case .transcribing: return "Typing…"

@@ -9,7 +9,7 @@ final class TranscribeWindow {
     private let model = TranscribeModel()
     private var window: NSWindow?
 
-    var isRecordingMeeting: Bool { model.recorder.isRecording }
+    var isRecordingMeeting: Bool { model.recorder.isRecording || model.recorder.isStarting }
 
     /// Opens the window; with a file, starts transcribing it right away.
     func show(file: URL? = nil) {
@@ -51,6 +51,8 @@ final class TranscribeModel: ObservableObject {
 
     let recorder = MeetingRecorder()
     private var task: Task<Void, Never>?
+    /// Bumped on every new job and on cancel, so a cancelled job that finishes late can't overwrite a newer one.
+    private var generation = 0
 
     private static let summaryInstruction = "Summarize this transcript in a few bullet points, then list any action items. Use the transcript's language."
 
@@ -59,27 +61,34 @@ final class TranscribeModel: ObservableObject {
     func transcribe(file url: URL) {
         guard !isBusy else { return }
         begin(.decoding)
+        generation += 1
+        let gen = generation
         task = Task {
             do {
                 let samples = try await AudioDecoder.samples(from: url)
-                try Task.checkCancellation()
+                try self.check(gen)
                 phase = .transcribing
                 let segments = try await Self.transcribe(samples)
-                try Task.checkCancellation()
+                try self.check(gen)
                 let name = url.deletingPathExtension().lastPathComponent
                 finish(Transcript(segments: segments.map { TranscriptSegment(start: $0.start, end: $0.end, text: $0.text, speaker: nil) },
                                   title: name, date: Date()))
             } catch is CancellationError {
-                phase = .idle
+                if gen == generation { phase = .idle }
             } catch {
-                fail(error)
+                if gen == generation { fail(error) }
             }
         }
     }
 
+    private func check(_ gen: Int) throws {
+        try Task.checkCancellation()
+        if gen != generation { throw CancellationError() }
+    }
+
     func toggleMeeting() {
         if phase == .recording { stopMeeting(); return }
-        guard !isBusy else { return }
+        guard !isBusy, !recorder.isStarting else { return }
         guard AppController.shared.isModelReady else {
             error = "The speech model is still loading. Try again in a moment."
             return
@@ -98,29 +107,32 @@ final class TranscribeModel: ObservableObject {
     func stopMeeting() {
         guard phase == .recording else { return }
         phase = .decoding // brief: while the streams shut down
+        generation += 1
+        let gen = generation
         task = Task {
             let tracks = await recorder.stop()
             do {
                 phase = .transcribing
                 var mic: [TimedSegment] = [], system: [TimedSegment] = []
                 if Self.hasSpeech(tracks.mic) { mic = try await Self.transcribe(tracks.mic) }
-                try Task.checkCancellation()
+                try self.check(gen)
                 if Self.hasSpeech(tracks.system) { system = try await Self.transcribe(tracks.system) }
-                try Task.checkCancellation()
+                try self.check(gen)
                 let merged = Transcript.merge(mic: mic, system: system)
                 if merged.isEmpty { throw NSError(domain: "SayType", code: 12, userInfo: [NSLocalizedDescriptionKey: "No speech was detected in the recording."]) }
                 let formatter = DateFormatter()
                 formatter.dateFormat = "yyyy-MM-dd HH.mm"
                 finish(Transcript(segments: merged, title: "Meeting \(formatter.string(from: Date()))", date: Date()))
             } catch is CancellationError {
-                phase = .idle
+                if gen == generation { phase = .idle }
             } catch {
-                fail(error)
+                if gen == generation { fail(error) }
             }
         }
     }
 
     func cancel() {
+        generation += 1
         task?.cancel()
         task = nil
         if phase == .recording {

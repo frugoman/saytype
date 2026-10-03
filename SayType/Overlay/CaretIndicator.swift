@@ -96,7 +96,9 @@ final class CaretIndicator {
         }
         // Only publish real changes; assigning the same value still makes SwiftUI lay everything out again.
         let newKind = kind(for: controller)
-        if model.kind != newKind { model.kind = newKind; model.hint = hint(for: newKind) }
+        if model.kind != newKind { model.kind = newKind }
+        let newHint = hint(for: newKind, controller: controller)
+        if model.hint != newHint { model.hint = newHint }
         let newLevel = max(0, min(1, (Double(controller.micLevelDB) + 60) / 35))
         if abs(model.level - newLevel) > 0.04 { model.level = newLevel }
 
@@ -124,15 +126,23 @@ final class CaretIndicator {
         }
     }
 
-    private func hint(for kind: Kind) -> String {
+    private func hint(for kind: Kind, controller c: AppController) -> String {
         switch kind {
         case .listening: return "SayType is listening. Click to turn off."
-        case .hearing: return "Hearing you…"
-        case .working: return "Typing…"
-        case .paused: return "SayType is paused right now (other audio playing or not ready)."
+        case .hearing: return c.manualRecording ? "Recording…" : "Hearing you…"
+        case .working:
+            if case .loading(_, let message) = c.status { return message }
+            return "Transcribing…"
+        case .paused: return (c.pauseReason ?? "SayType is paused") + ". Click to turn off."
         case .speaking: return "Reading aloud"
         case .off: return "SayType is off. Click to turn on."
-        case .problem: return "The microphone isn't delivering audio. Open SayType from the menu bar."
+        case .problem:
+            switch c.status {
+            case .needsMicPermission: return "SayType needs microphone access. Open it from the menu bar."
+            case .needsAccessibility: return "SayType needs Accessibility access. Open it from the menu bar."
+            case .error(let message): return message
+            default: return "The microphone isn't delivering audio. SayType is restarting it."
+            }
         }
     }
 

@@ -43,7 +43,8 @@ enum TranscriptFilter {
     static func clean(_ raw: String, prompt: String?) -> String? {
         var text = raw
             // Whisper sometimes adds annotations like "[MUSIC]", "(laughs)" or "(I'm not sure how to translate that)".
-            .replacingOccurrences(of: #"\[[^\]]{0,80}\]|\([^)]{0,100}\)"#, with: "", options: .regularExpression)
+            // Never strip brackets with digits in them: that's real content, like "(555) 123-4567".
+            .replacingOccurrences(of: #"\[[^\]\d]{0,80}\]|\([^)\d]{0,100}\)"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         while text.contains("  ") { text = text.replacingOccurrences(of: "  ", with: " ") }
         guard !text.isEmpty else { return nil }
@@ -51,7 +52,10 @@ enum TranscriptFilter {
         let normalized = text.lowercased().trimmingCharacters(in: .punctuationCharacters.union(.whitespaces))
         if normalized.isEmpty || hallucinations.contains(normalized) { return nil }
         // Whisper sometimes parrots its prompt back when it hears nothing useful.
-        if let prompt, text.count > 12, prompt.localizedCaseInsensitiveContains(text) { return nil }
+        // An echo is long, most of the prompt, or carries its labels ("Also:", "Terms:"). A short phrase
+        // that just happens to be vocabulary words ("Kubernetes, Docker") is real dictation.
+        if let prompt, text.count > 12, prompt.localizedCaseInsensitiveContains(text),
+           text.count >= 40 || text.count * 10 >= prompt.count * 8 || text.contains(":") { return nil }
         return text
     }
 }

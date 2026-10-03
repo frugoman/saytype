@@ -28,20 +28,49 @@ final class LocalServerSTTEngine: SpeechToTextEngine {
     }
 
     func transcribe(_ audio: [Float], prompt: String?, language: String?) async throws -> String {
+        let data = try await request(audio, prompt: prompt, language: language, format: "json", timeout: 60)
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let text = json["text"] as? String {
+            return text
+        }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Files and meetings: real timestamps (verbose_json), and a timeout long enough for an hour of audio,
+    /// since the server sends nothing back until it has finished.
+    func transcribeSegments(_ audio: [Float], language: String?) async throws -> [TimedSegment] {
+        let seconds = Double(audio.count) / 16_000
+        let data = try await request(audio, prompt: nil, language: language, format: "verbose_json",
+                                     timeout: max(120, seconds * 2))
+        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let segments = json?["segments"] as? [[String: Any]], !segments.isEmpty {
+            return segments.compactMap { s in
+                guard let text = (s["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty
+                else { return nil }
+                let start = (s["start"] as? NSNumber)?.doubleValue ?? 0
+                let end = (s["end"] as? NSNumber)?.doubleValue ?? start
+                return TimedSegment(start: start, end: end, text: text)
+            }
+        }
+        let text = (json?["text"] as? String) ?? String(data: data, encoding: .utf8) ?? ""
+        return text.isEmpty ? [] : [TimedSegment(start: 0, end: seconds, text: text)]
+    }
+
+    private func request(_ audio: [Float], prompt: String?, language: String?, format: String,
+                         timeout: TimeInterval) async throws -> Data {
         let boundary = "SayType-\(UUID().uuidString)"
         var body = Data()
         func field(_ name: String, _ value: String) {
             body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)\r\n".data(using: .utf8)!)
         }
         field("model", model)
-        field("response_format", "json")
+        field("response_format", format)
         if let prompt { field("prompt", prompt) }
         if let language { field("language", language) }
         body.append("--\(boundary)\r\nContent-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
         body.append(WAV.encode(audio))
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
-        var request = URLRequest(url: endpoint, timeoutInterval: 60)
+        var request = URLRequest(url: endpoint, timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
@@ -52,9 +81,6 @@ final class LocalServerSTTEngine: SpeechToTextEngine {
             throw NSError(domain: "SayType", code: 3,
                           userInfo: [NSLocalizedDescriptionKey: "Server error: \(msg.prefix(200))"])
         }
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], let text = json["text"] as? String {
-            return text
-        }
-        return String(data: data, encoding: .utf8) ?? ""
+        return data
     }
 }

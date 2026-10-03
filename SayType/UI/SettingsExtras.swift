@@ -91,7 +91,7 @@ struct ShortcutRow: View {
             Spacer(minLength: 8)
             if conflicted {
                 PlayChip(text: "In use", tint: .peach, icon: "exclamationmark.triangle.fill")
-                    .help("Another app already uses this shortcut. Pick a different one.")
+                    .help("Another app, or another SayType action, already uses this shortcut. Pick a different one.")
                     .transition(.scale.combined(with: .opacity))
             }
             keycap

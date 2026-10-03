@@ -68,8 +68,11 @@ final class FocusMonitor: ObservableObject {
             update(.none, element: nil)
             return
         }
-        frontAppName = app.localizedName ?? ""
-        frontBundleID = app.bundleIdentifier
+        // Assign only on change: these are @Published, and re-assigning the same value 4×/s made every
+        // view that watches focus (the menu popover) redraw constantly.
+        let name = app.localizedName ?? ""
+        if frontAppName != name { frontAppName = name }
+        if frontBundleID != app.bundleIdentifier { frontBundleID = app.bundleIdentifier }
         let pid = app.processIdentifier
         enableAccessibilityTree(for: pid)
 

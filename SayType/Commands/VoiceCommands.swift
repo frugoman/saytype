@@ -47,9 +47,12 @@ enum VoiceCommands {
         (["new", "line"], .newLine),
         (["newline"], .newLine),
         (["scratch", "that"], .deleteLast),
-        (["delete", "that"], .deleteLast),
         (["strike", "that"], .deleteLast),
     ]
+
+    /// Single-word commands count only when said alone: "and return" or "then enter" in a sentence
+    /// shouldn't send a half-written message.
+    private static let bareWordCommands: Set<String> = ["enter", "return", "undo", "newline"]
 
     private enum Mark { case close(String), open(String), quote }
 
@@ -90,7 +93,11 @@ enum VoiceCommands {
             var core = normalized[...]
             while let first = core.first, fillers.contains(first) { core = core.dropFirst() }
             while let last = core.last, fillers.contains(last) { core = core.dropLast() }
-            for entry in standalone where Array(core) == entry.phrase { return [entry.action] }
+            for entry in standalone where Array(core) == entry.phrase {
+                if core.count == 1, bareWordCommands.contains(core[core.startIndex]),
+                   normalized.filter({ !$0.isEmpty }).count != 1 { continue }
+                return [entry.action]
+            }
         }
 
         var actions: [DictationAction] = []
@@ -103,7 +110,9 @@ enum VoiceCommands {
 
         var i = 0
         while i < words.count {
-            if options.commands, let hit = match(inline, at: i, in: normalized) {
+            if options.commands, let hit = match(inline, at: i, in: normalized),
+               hit.action != .deleteLast || isCorrection(at: i, length: hit.length, in: normalized,
+                                                         hadEarlierSpeech: !actions.isEmpty || !buffer.isEmpty) {
                 i += hit.length
                 switch hit.action {
                 case .deleteLast:
@@ -144,6 +153,13 @@ enum VoiceCommands {
     }
 
     // MARK: - Matching
+
+    /// "scratch that" inside an utterance is a correction only when it follows something said in the same
+    /// utterance, or ends it. At the start of a longer sentence ("scratch that idea, we…") it's just words.
+    private static func isCorrection(at i: Int, length: Int, in words: [String], hadEarlierSpeech: Bool) -> Bool {
+        if hadEarlierSpeech { return true }
+        return words[(i + length)...].allSatisfy { $0.isEmpty || fillers.contains($0) }
+    }
 
     private static func normalize(_ word: String) -> String {
         word.lowercased().trimmingCharacters(in: .punctuationCharacters.union(.symbols))

@@ -85,7 +85,16 @@ final class AppController: ObservableObject {
         var forced = false
         var bundleID: String? { NSRunningApplication(processIdentifier: pid)?.bundleIdentifier }
     }
-    private var utterances: AsyncStream<([Float], Target?)>.Continuation?
+    /// One piece of speech to transcribe. `teach` is the voice-edit / teach capture that was active when
+    /// it was recorded: where it goes is decided then, not when transcription finishes.
+    private struct Utterance {
+        let samples: [Float]
+        let target: Target?
+        var teach: ((String) -> Void)? = nil
+    }
+    private var utterances: AsyncStream<Utterance>.Continuation?
+    private var manualFlush: (work: DispatchWorkItem, target: Target?)?
+    private var speakBusy = false
     private var speechTarget: Target?
     private var cancellables = Set<AnyCancellable>()
     private var stopMicWork: DispatchWorkItem?
@@ -96,6 +105,10 @@ final class AppController: ObservableObject {
     private var editing = false
     private var lastExternalApp: NSRunningApplication?
     private var lastTyped: (count: Int, pid: pid_t, date: Date)?
+    /// The voice detector is inside a stretch of speech right now.
+    private var vadSpeaking = false
+    /// Utterances being transcribed (they can overlap with new speech).
+    private var transcribing = 0
 
     /// Where microphone samples go. Only touched on `vadQueue`.
     private enum Route { case vad, manual, drop }
@@ -160,7 +173,15 @@ final class AppController: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.speechTarget = self.currentTarget()
-                if self.status == .listening { self.status = .hearing }
+                self.vadSpeaking = true
+                self.updateStatus()
+            }
+        }
+        vad.onSpeechEnd = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self, self.vadSpeaking else { return }
+                self.vadSpeaking = false
+                self.updateStatus()
             }
         }
         vad.onDebug = { [log] message in log.notice("vad: \(message, privacy: .public)") }
@@ -168,7 +189,8 @@ final class AppController: ObservableObject {
             DispatchQueue.main.async {
                 guard let self else { return }
                 // A forced split mid-sentence has no new speech start, so it keeps the same target.
-                self.utterances?.yield((samples, self.speechTarget ?? self.currentTarget()))
+                self.utterances?.yield(Utterance(samples: samples, target: self.speechTarget ?? self.currentTarget(),
+                                                 teach: self.teachHandler))
             }
         }
         applyVADSettings()
@@ -238,15 +260,31 @@ final class AppController: ObservableObject {
         updateStatus()
     }
 
+    /// Derives the status from the real state (mic running, speech in progress, transcribing), so the
+    /// menu, the caret badge and `saytype status` never show a state the mic isn't actually in.
     private func updateStatus() {
         if case .loading = status, !sttReady { return }
         if case .error = status, !sttReady { return }
-        if status == .transcribing || status == .hearing { return }
         if isSpeaking { status = .speaking; return }
         if !micPermission { status = .needsMicPermission; return }
         if focus.state == .noPermission { status = .needsAccessibility; return }
+        if audio.isRunning && vadSpeaking { status = .hearing; return }
+        if transcribing > 0 { status = .transcribing; return }
         if !enabled && teachHandler == nil && !manualRecording { status = .disabled; return }
         status = audio.isRunning ? .listening : .idle
+    }
+
+    /// Why the mic is off while a text field has focus, for the caret badge and the menu.
+    var pauseReason: String? {
+        guard status == .idle else { return nil }
+        if meetingActive { return "Paused while a meeting is recorded" }
+        if listenMode != .auto {
+            let keys = ShortcutAction.pushToTalk.shortcut.label
+            return listenMode == .toggle ? "Press \(keys) to talk" : "Hold \(keys) to talk"
+        }
+        if mediaPlaying { return "Paused while other audio plays" }
+        if !sttReady { return "The speech model isn't ready yet" }
+        return nil
     }
 
     private func checkMedia() {
@@ -295,11 +333,11 @@ final class AppController: ObservableObject {
     // MARK: - Transcription
 
     private func startTranscriptionLoop() {
-        let (stream, continuation) = AsyncStream<([Float], Target?)>.makeStream()
+        let (stream, continuation) = AsyncStream<Utterance>.makeStream()
         utterances = continuation
         Task { [weak self] in
-            for await (samples, target) in stream {
-                await self?.handle(samples, target: target)
+            for await utterance in stream {
+                await self?.handle(utterance)
             }
         }
     }
@@ -330,11 +368,24 @@ final class AppController: ObservableObject {
         Pref.defaults.string(forKey: Pref.language).flatMap { $0 == "auto" ? nil : $0 }
     }
 
-    private func handle(_ samples: [Float], target: Target?) async {
-        guard let stt, sttReady else { return }
-        status = .transcribing
+    private func handle(_ utterance: Utterance) async {
+        let target = utterance.target
+        guard let stt, sttReady else {
+            // The model is reloading; don't leave "Transcribing…" on screen.
+            if target?.forced == true { RecordingOverlay.shared.hide() }
+            return
+        }
+        let samples = utterance.samples
+        let teachHandler = utterance.teach
+        // Said before a voice edit started: typing it now would overwrite the selection being edited.
+        if teachHandler == nil, editing, target?.forced != true {
+            log.notice("stt: dropped speech from before the voice edit")
+            return
+        }
+        transcribing += 1
+        updateStatus()
         defer {
-            status = .idle
+            transcribing -= 1
             updateStatus()
             if target?.forced == true { RecordingOverlay.shared.hide() }
         }
@@ -412,6 +463,7 @@ final class AppController: ObservableObject {
         let stillThere = isStillThere(target)
 
         if !stillThere {
+            lastTyped = nil // it went to another field (or nowhere); "scratch that" must not backspace here
             // Never paste into whatever happens to be focused now; that's how text ends up in the wrong app.
             let original = target.element.flatMap { element in
                 actions.allSatisfy({ if case .text = $0 { return true } else { return false } })
@@ -430,26 +482,36 @@ final class AppController: ObservableObject {
                 if index > 0 { try? await Task.sleep(for: .milliseconds(90)) }
                 switch action {
                 case .text(let t):
-                    inserter.insert(t, into: target.element, appName: target.appName, method: method)
-                    typedCount += inserter.lastInsertedCount
+                    if inserter.insert(t, into: target.element, appName: target.appName, method: method) {
+                        typedCount += inserter.lastInsertedCount
+                    }
                 case .newLine:
                     TextInserter.postKey(36, flags: .maskShift); typedCount += 1
+                    inserter.resetSpacing()
                 case .newParagraph:
                     TextInserter.postKey(36, flags: .maskShift)
                     TextInserter.postKey(36, flags: .maskShift); typedCount += 2
+                    inserter.resetSpacing()
                 case .pressEnter:
                     TextInserter.postKey(36, flags: [])
+                    inserter.resetSpacing()
+                    lastTyped = nil; typedCount = 0 // the message was sent; nothing left to scratch
                     RecordingOverlay.shared.show(.message("↩ Enter"), hideAfter: 1.4)
                 case .undo:
                     TextInserter.postKey(6, flags: .maskCommand)
+                    inserter.resetSpacing()
+                    lastTyped = nil; typedCount = 0
                     RecordingOverlay.shared.show(.message("↶ Undo"), hideAfter: 1.4)
                 case .selectAll:
                     TextInserter.postKey(0, flags: .maskCommand)
+                    inserter.resetSpacing()
+                    lastTyped = nil; typedCount = 0
                     RecordingOverlay.shared.show(.message("Selected all"), hideAfter: 1.4)
                 case .deleteLast:
                     if let last = lastTyped, last.pid == target.pid, Date().timeIntervalSince(last.date) < 120, last.count > 0 {
                         for _ in 0..<min(last.count, 2000) { TextInserter.postKey(51, flags: []) }
                         lastTyped = nil
+                        inserter.resetSpacing()
                         RecordingOverlay.shared.show(.message("Scratched that"), hideAfter: 1.4)
                     } else {
                         NSSound.beep()
@@ -488,6 +550,12 @@ final class AppController: ObservableObject {
 
     func startManualRecording() {
         guard !manualRecording else { return }
+        // Pressed again before the last recording's tail was collected: send that one off first, so the
+        // two recordings don't get mixed together.
+        if let pending = manualFlush {
+            pending.work.cancel()
+            flushManualRecording(target: pending.target)
+        }
         guard sttReady, micPermission, !isSpeaking, let target = forcedTarget() else {
             NSSound.beep()
             return
@@ -509,26 +577,31 @@ final class AppController: ObservableObject {
         playSound("Pop")
         RecordingOverlay.shared.show(.working("Transcribing…"))
         // Keep the mic open a moment so the last syllable isn't clipped.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            guard let self else { return }
-            self.vadQueue.async {
-                let samples = self.capture.buffer
-                self.capture.buffer = []
-                DispatchQueue.main.async {
-                    self.manualTail = false
-                    self.refresh()
-                    // Under a third of a second is a key bump, not speech.
-                    if samples.count < 5_000 {
-                        RecordingOverlay.shared.hide()
-                    } else {
-                        self.utterances?.yield((samples, target))
-                    }
-                }
-            }
+        let work = DispatchWorkItem { [weak self] in self?.flushManualRecording(target: target) }
+        manualFlush = (work, target)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: work)
+    }
+
+    private func flushManualRecording(target: Target?) {
+        manualFlush = nil
+        let samples: [Float] = vadQueue.sync {
+            let s = capture.buffer
+            capture.buffer = []
+            return s
+        }
+        manualTail = false
+        refresh()
+        // Under a third of a second is a key bump, not speech.
+        if samples.count < 5_000 {
+            RecordingOverlay.shared.hide()
+        } else {
+            utterances?.yield(Utterance(samples: samples, target: target))
         }
     }
 
     private func cancelManualRecording() {
+        manualFlush?.work.cancel()
+        manualFlush = nil
         manualRecording = false
         manualTail = false
         manualTarget = nil
@@ -565,7 +638,11 @@ final class AppController: ObservableObject {
     func registerHotKeys() {
         hotKeys.unregisterAll()
         var conflicts: [ShortcutAction] = []
+        var used: [Shortcut] = []
         func bind(_ action: ShortcutAction, press: @escaping () -> Void, release: (() -> Void)? = nil) {
+            // The same keys on two SayType actions: only the first would ever fire, so flag the second.
+            if used.contains(action.shortcut) { conflicts.append(action); return }
+            used.append(action.shortcut)
             if !hotKeys.register(action.shortcut, onPress: press, onRelease: release) { conflicts.append(action) }
         }
         bind(.toggleDictation) { [weak self] in self?.enabled.toggle() }
@@ -803,7 +880,7 @@ final class AppController: ObservableObject {
     // MARK: - Text to speech
 
     func speakSelection() {
-        if isSpeaking {
+        if isSpeaking || speakBusy {
             tts?.stop()
             return
         }
@@ -817,6 +894,11 @@ final class AppController: ObservableObject {
     }
 
     func speak(_ text: String) async {
+        // One at a time: a second request while the first is loading or talking used to turn the mic back on
+        // while the voice was still speaking, and SayType then typed its own voice.
+        guard !speakBusy else { return }
+        speakBusy = true
+        defer { speakBusy = false }
         if tts == nil { tts = makeTTS() }
         guard let tts else { return }
         ttsName = tts.displayName

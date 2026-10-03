@@ -44,6 +44,9 @@ final class FilterTests: XCTestCase {
         XCTAssertEqual(TranscriptFilter.clean("  Ship it  now. ", prompt: nil), "Ship it now.")
         XCTAssertEqual(TranscriptFilter.clean("Ah, scratch there. (I'm not sure how to translate that)", prompt: nil), "Ah, scratch there.")
         XCTAssertNil(TranscriptFilter.clean("(laughs)", prompt: nil))
+        // Real content survives: numbers in brackets, and short phrases that are just vocabulary words.
+        XCTAssertEqual(TranscriptFilter.clean("Call (555) 123-4567", prompt: nil), "Call (555) 123-4567")
+        XCTAssertEqual(TranscriptFilter.clean("Kubernetes and Docker", prompt: "Software dev. Also: Kubernetes and Docker, Swift, Xcode, TestFlight, GitHub."), "Kubernetes and Docker")
     }
 }
 
@@ -78,6 +81,25 @@ final class VADTests: XCTestCase {
         vad.process(tone(seconds: 0.1, amplitude: 0.3))   // click
         vad.process(noise(seconds: 2, amplitude: 0.003))
         XCTAssertEqual(count, 0)
+    }
+
+    /// The caret badge relied on this: a discarded burst used to leave the app stuck on "hearing".
+    func testSpeechEndFiresEvenWhenTheBurstIsDiscarded() {
+        let vad = VoiceActivityDetector()
+        var starts = 0, ends = 0, utterances = 0
+        vad.onSpeechStart = { starts += 1 }
+        vad.onSpeechEnd = { ends += 1 }
+        vad.onUtterance = { _ in utterances += 1 }
+        vad.process(noise(seconds: 1.0, amplitude: 0.001))
+        vad.process(tone(seconds: 0.15, amplitude: 0.3))  // a cough: starts speech, too short to keep
+        vad.process(noise(seconds: 1.5, amplitude: 0.001))
+        XCTAssertEqual(starts, 1)
+        XCTAssertEqual(utterances, 0)
+        XCTAssertEqual(ends, 1)
+        // A reset mid-speech (mic turned off) also ends it.
+        vad.process(tone(seconds: 0.5, amplitude: 0.3))
+        vad.reset()
+        XCTAssertEqual(ends, 2)
     }
 
     func testLongSpeechIsSplit() {

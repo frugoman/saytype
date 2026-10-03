@@ -19,6 +19,8 @@ final class VoiceActivityDetector {
 
     var config = Config()
     var onSpeechStart: (() -> Void)?
+    /// Speech ended: after an utterance, a discarded burst (cough, click) or a reset. Not on a forced split.
+    var onSpeechEnd: (() -> Void)?
     var onUtterance: (([Float]) -> Void)?
     var onDebug: ((String) -> Void)?
     /// Current input level in dBFS, for a UI meter.
@@ -39,8 +41,11 @@ final class VoiceActivityDetector {
     private var silenceRun = 0
     private var voicedFrames = 0
     private var utterance: [Float] = []
+    /// The previous piece was cut at maxUtterance, so this one continues a sentence: keep it even if short.
+    private var afterForcedSplit = false
 
     func reset() {
+        if speaking { onSpeechEnd?() }
         pending.removeAll()
         preRoll.removeAll()
         utterance.removeAll()
@@ -48,6 +53,7 @@ final class VoiceActivityDetector {
         voicedRun = 0
         silenceRun = 0
         voicedFrames = 0
+        afterForcedSplit = false
     }
 
     func process(_ samples: [Float]) {
@@ -143,8 +149,10 @@ final class VoiceActivityDetector {
         voicedFrames = 0
 
         onDebug?("utterance \(String(format: "%.1f", Double(audio.count) / AudioCapture.sampleRate))s voiced \(String(format: "%.1f", voicedSeconds))s forced \(wasForced) floor \(Int(noiseFloor))dB peak \(Int(speechPeak))dB")
-        if voicedSeconds >= config.minVoiced {
+        if voicedSeconds >= config.minVoiced || (afterForcedSplit && voicedSeconds > 0) {
             onUtterance?(audio)
         }
+        afterForcedSplit = wasForced
+        if !wasForced { onSpeechEnd?() }
     }
 }

@@ -21,13 +21,19 @@ final class MeetingRecorder: ObservableObject {
     private var sink: SystemAudioSink?
     private var timer: Timer?
     private var startedAt = Date()
+    /// True while start() is still setting up; a second start in that window used to install a second
+    /// mic tap, which crashes AVAudioEngine.
+    private(set) var isStarting = false
+    private var configObserver: NSObjectProtocol?
 
     struct RecorderError: LocalizedError {
         let errorDescription: String?
     }
 
     func start() async throws {
-        guard !isRecording else { return }
+        guard !isRecording, !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
 
         guard await AVCaptureDevice.requestAccess(for: .audio) else {
             throw RecorderError(errorDescription: "Microphone access is off. Turn on SayType in System Settings → Privacy & Security → Microphone.")
@@ -112,6 +118,7 @@ final class MeetingRecorder: ObservableObject {
         let input = engine.inputNode
         let resampler = Resampler()
         let buffer = mic
+        input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] pcm, _ in
             // Audio thread: only this closure touches `resampler`.
             let samples = resampler.convert(pcm)
@@ -125,9 +132,33 @@ final class MeetingRecorder: ObservableObject {
             input.removeTap(onBus: 0)
             throw error
         }
+        if configObserver == nil {
+            // AirPods connecting or the input changing stops the engine; pick the mic back up, and fill the
+            // gap with silence so "You" stays in time with "Others".
+            configObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange,
+                                                                    object: engine, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.micDeviceChanged() }
+            }
+        }
+    }
+
+    private func micDeviceChanged() {
+        guard isRecording else { return }
+        let stoppedAt = Date()
+        engine.stop()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self, self.isRecording else { return }
+            let gap = Int(Date().timeIntervalSince(stoppedAt) * 16_000)
+            self.mic.append([Float](repeating: 0, count: gap))
+            do { try self.startMic() } catch {
+                self.warning = "The microphone stopped when the audio device changed. The other side is still recording."
+            }
+        }
     }
 
     private func teardown() async {
+        if let configObserver { NotificationCenter.default.removeObserver(configObserver) }
+        configObserver = nil
         if engine.isRunning { engine.stop() }
         engine.inputNode.removeTap(onBus: 0)
         if let stream { try? await stream.stopCapture() }

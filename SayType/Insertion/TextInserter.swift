@@ -17,6 +17,7 @@ final class TextInserter {
     @discardableResult
     func insert(_ rawText: String, into element: AXUIElement?, appName: String, method: InsertionMethod,
                 replacingSelection: Bool = false) -> Bool {
+        lastInsertedCount = 0
         var text = rawText
         if !replacingSelection, needsLeadingSpace(before: text, element: element, appName: appName) {
             text = " " + text
@@ -37,6 +38,9 @@ final class TextInserter {
     }
 
     // MARK: - Spacing
+
+    /// After a new line, Enter, select-all or scratch-that, the next dictation starts fresh: no leading space.
+    func resetSpacing() { lastInsert = nil }
 
     private func needsLeadingSpace(before text: String, element: AXUIElement?, appName: String) -> Bool {
         guard let first = text.first, !first.isPunctuation, !first.isWhitespace else { return false }
@@ -81,13 +85,19 @@ final class TextInserter {
 
     // MARK: - Paste fallback
 
+    /// The user's clipboard, saved before our first paste and not yet put back. Several pastes in a row
+    /// (text, new line, text) share it, so the user's own clipboard is what comes back at the end.
+    private var pendingRestore: (saved: [[NSPasteboard.PasteboardType: Data]], work: DispatchWorkItem)?
+
     private func paste(_ text: String) {
         let pb = NSPasteboard.general
-        let saved = pb.pasteboardItems?.map { item -> [NSPasteboard.PasteboardType: Data] in
-            var dict: [NSPasteboard.PasteboardType: Data] = [:]
-            for type in item.types { if let d = item.data(forType: type) { dict[type] = d } }
-            return dict
-        } ?? []
+        let saved: [[NSPasteboard.PasteboardType: Data]]
+        if let pending = pendingRestore {
+            pending.work.cancel()
+            saved = pending.saved
+        } else {
+            saved = Self.snapshot(pb)
+        }
 
         pb.clearContents()
         pb.setString(text, forType: .string)
@@ -97,17 +107,32 @@ final class TextInserter {
 
         Self.postKey(9, flags: .maskCommand) // ⌘V
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+        let work = DispatchWorkItem { [weak self] in
+            self?.pendingRestore = nil
             // Only restore if nobody else changed the clipboard in the meantime.
             guard pb.changeCount == changeCount else { return }
-            pb.clearContents()
-            let items = saved.map { dict -> NSPasteboardItem in
-                let item = NSPasteboardItem()
-                for (type, data) in dict { item.setData(data, forType: type) }
-                return item
-            }
-            if !items.isEmpty { pb.writeObjects(items) }
+            Self.restore(saved, to: pb)
         }
+        pendingRestore = (saved, work)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+    }
+
+    private static func snapshot(_ pb: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
+        pb.pasteboardItems?.map { item in
+            var dict: [NSPasteboard.PasteboardType: Data] = [:]
+            for type in item.types { if let d = item.data(forType: type) { dict[type] = d } }
+            return dict
+        } ?? []
+    }
+
+    private static func restore(_ saved: [[NSPasteboard.PasteboardType: Data]], to pb: NSPasteboard) {
+        pb.clearContents()
+        let items = saved.map { dict -> NSPasteboardItem in
+            let item = NSPasteboardItem()
+            for (type, data) in dict { item.setData(data, forType: type) }
+            return item
+        }
+        if !items.isEmpty { pb.writeObjects(items) }
     }
 
     static func postKey(_ keyCode: CGKeyCode, flags: CGEventFlags) {
@@ -131,16 +156,16 @@ final class TextInserter {
             return text
         }
         // Fallback: copy the selection and read the clipboard, then restore it.
+        // Saves every item and type (images, files, rich text), not just plain text.
         let pb = NSPasteboard.general
-        let previous = pb.string(forType: .string)
+        let previous = snapshot(pb)
         let before = pb.changeCount
         postKey(8, flags: .maskCommand) // ⌘C
         try? await Task.sleep(for: .milliseconds(200))
-        guard pb.changeCount != before, let copied = pb.string(forType: .string) else { return nil }
-        if let previous {
-            pb.clearContents()
-            pb.setString(previous, forType: .string)
-        }
+        guard pb.changeCount != before else { return nil }
+        let copied = pb.string(forType: .string)
+        restore(previous, to: pb)
+        guard let copied, !copied.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         return copied
     }
 }

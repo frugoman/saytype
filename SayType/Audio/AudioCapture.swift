@@ -17,6 +17,7 @@ final class AudioCapture {
     /// When audio last arrived from the microphone; used to notice a silently stopped engine.
     private var lastSampleAt = Date()
     private var observers: [NSObjectProtocol] = []
+    private var pendingRestart: DispatchWorkItem?
     /// Input level of the latest audio, in dBFS, for the on-screen indicator.
     private(set) var levelDB: Float = -90
 
@@ -28,8 +29,16 @@ final class AudioCapture {
         // mic changes) and after sleep. Without this the app says "Listening" while nothing is recorded.
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: .AVAudioEngineConfigurationChange, object: engine, queue: .main) { [weak self] _ in
-            self?.log.notice("Audio device changed; restarting the microphone")
-            self?.restart()
+            // Device switches come in bursts (Bluetooth headsets change profile when the mic opens), so
+            // restart once things settle instead of on every notification.
+            guard let self else { return }
+            self.pendingRestart?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                self?.log.notice("Audio device changed; restarting the microphone")
+                self?.restart()
+            }
+            self.pendingRestart = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
         })
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self, self.isRunning else { return }

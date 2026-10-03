@@ -49,6 +49,13 @@ final class VoiceCommandTests: XCTestCase {
     func testScratchThatDeletesPreviousTyping() {
         XCTAssertEqual(VoiceCommands.parse("Scratch that.", options: on), [.deleteLast])
         XCTAssertEqual(VoiceCommands.parse("Send it tomorrow scratch that send it today", options: on), [.text("send it today")])
+        // At the start of a longer sentence it's just words, and "delete that" is never a command mid-sentence.
+        XCTAssertEqual(VoiceCommands.parse("Scratch that idea, we ship Friday", options: on), [.text("Scratch that idea, we ship Friday")])
+        XCTAssertEqual(VoiceCommands.parse("Can you delete that branch?", options: on), [.text("Can you delete that branch?")])
+        // Single-word commands only when said alone.
+        XCTAssertEqual(VoiceCommands.parse("Enter.", options: on), [.pressEnter])
+        XCTAssertEqual(VoiceCommands.parse("And return.", options: on), [.text("And return.")])
+        XCTAssertEqual(VoiceCommands.parse("Uh, press enter.", options: on), [.pressEnter])
     }
 
     func testCommandsCanBeDisabled() {

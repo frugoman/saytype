@@ -46,6 +46,8 @@ final class SystemTTSEngine: NSObject, TextToSpeechEngine, AVSpeechSynthesizerDe
             utterance.voice = voice
         }
         utterance.rate = Float(Double(AVSpeechUtteranceDefaultSpeechRate) * rate)
+        // Never leave an earlier request waiting forever.
+        resume()
         await withCheckedContinuation { cont in
             continuation = cont
             synth.speak(utterance)
@@ -128,6 +130,7 @@ final class LocalServerTTSEngine: TextToSpeechEngine {
     private var player: AVAudioPlayer?
     private var finished: CheckedContinuation<Void, Never>?
     private var delegate: PlayerDelegate?
+    private var cancelled = false
 
     var displayName: String { "Server · \(model) · \(voice)" }
 
@@ -141,6 +144,7 @@ final class LocalServerTTSEngine: TextToSpeechEngine {
     func prepare(progress: @escaping (Double, String) -> Void) async throws { progress(1, "Ready") }
 
     func speak(_ text: String, language: String?) async throws {
+        cancelled = false
         let url = baseURL.path.hasSuffix("/speech") ? baseURL : baseURL.appendingPathComponent("v1/audio/speech")
         var request = URLRequest(url: url, timeoutInterval: 120)
         request.httpMethod = "POST"
@@ -152,6 +156,8 @@ final class LocalServerTTSEngine: TextToSpeechEngine {
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw NSError(domain: "SayType", code: 4, userInfo: [NSLocalizedDescriptionKey: "Speech server error"])
         }
+        // Stopped while the server was still generating: don't start playing afterwards.
+        if cancelled { throw CancellationError() }
         let player = try AVAudioPlayer(data: data)
         self.player = player
         await withCheckedContinuation { cont in
@@ -162,11 +168,13 @@ final class LocalServerTTSEngine: TextToSpeechEngine {
             }
             delegate = d
             player.delegate = d
-            player.play()
+            // If playback can't start, finish now; otherwise SayType would think it's still talking and keep the mic off.
+            if !player.play() { d.onFinish() }
         }
     }
 
     func stop() {
+        cancelled = true
         player?.stop()
         finished?.resume()
         finished = nil
@@ -176,5 +184,6 @@ final class LocalServerTTSEngine: TextToSpeechEngine {
         let onFinish: () -> Void
         init(onFinish: @escaping () -> Void) { self.onFinish = onFinish }
         func audioPlayerDidFinishPlaying(_ p: AVAudioPlayer, successfully: Bool) { onFinish() }
+        func audioPlayerDecodeErrorDidOccur(_ p: AVAudioPlayer, error: Error?) { onFinish() }
     }
 }
