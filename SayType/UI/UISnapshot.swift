@@ -21,7 +21,7 @@ enum UISnapshot {
             (name: "settings-\(pane.rawValue)", view: attach(SettingsView()), size: CGSize(width: 820, height: 640))
         }
         result.append((name: "menu", view: attach(MenuView().padding(1).background(Color(nsColor: .windowBackgroundColor))),
-                       size: CGSize(width: 330, height: 460)))
+                       size: CGSize(width: 320, height: 512)))
         result += ExtraSnapshots.items().map { ($0.name, attach($0.view), $0.size) }
         return result
     }
@@ -34,6 +34,7 @@ enum UISnapshot {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         Task { @MainActor in
+            AppController.shared.prepareForSnapshot()
             let savedPane = UserDefaults.standard.string(forKey: "settings.pane")
             for item in items() {
                 if item.name.hasPrefix("settings-") {
@@ -56,7 +57,11 @@ enum UISnapshot {
         window.orderFront(nil)
         try? await Task.sleep(for: .milliseconds(700))
         hosting.layoutSubtreeIfNeeded()
-        if let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) {
+        let scale = 2
+        if let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(item.size.width) * scale, pixelsHigh: Int(item.size.height) * scale,
+                                      bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                      colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) {
+            rep.size = item.size // points; the extra pixels make the image sharp
             hosting.cacheDisplay(in: hosting.bounds, to: rep)
             if let png = rep.representation(using: .png, properties: [:]) {
                 try? png.write(to: dir.appendingPathComponent("\(item.name)\(dark ? "-dark" : "").png"))

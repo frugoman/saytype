@@ -173,8 +173,10 @@ enum Pref {
 /// Where downloaded models and user data live (inside the sandbox container).
 enum AppPaths {
     static var support: URL {
-        let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("SayType", isDirectory: true)
+        // SAYTYPE_SUPPORT_DIR lets screenshots and tests use a throwaway folder instead of your real data.
+        let url = ProcessInfo.processInfo.environment["SAYTYPE_SUPPORT_DIR"].map { URL(fileURLWithPath: $0, isDirectory: true) }
+            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("SayType", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         return url
     }

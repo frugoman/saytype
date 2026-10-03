@@ -772,6 +772,15 @@ final class AppController: ObservableObject {
         ttsStatus = ""
     }
 
+    /// Puts the controller in a "ready and listening" look for screenshots. Only used by `--snapshot`.
+    func prepareForSnapshot() {
+        guard UISnapshot.active else { return }
+        focus.prepareForSnapshot(appName: "Slack")
+        sttName = "Whisper · Large v3 Turbo"
+        sttReady = true
+        status = .listening
+    }
+
     // MARK: - Shared services (used by the file/meeting transcriber)
 
     /// Transcribes long audio with timestamps using the loaded speech engine.

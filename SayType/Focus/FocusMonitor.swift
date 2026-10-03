@@ -28,6 +28,12 @@ final class FocusMonitor: ObservableObject {
 
     static var isTrusted: Bool { AXIsProcessTrusted() }
 
+    /// Shows a given app name in the menu for screenshots. Only used by `--snapshot`.
+    func prepareForSnapshot(appName: String) {
+        guard UISnapshot.active else { return }
+        frontAppName = appName
+    }
+
     static func promptForPermission() {
         let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
