@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2
+
+- Fixed a crash when the microphone started while the input device was changing (switching
+  headsets or inputs, or listening turning on and off as music plays).
+
 ## 1.1.1
 
 - Fixed the menu-bar popover flickering open and closed (the mic badge window no longer animates).
