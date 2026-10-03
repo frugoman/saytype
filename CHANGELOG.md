@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.6
+
+- Fixed SayType turning listening on and off every few seconds with "Pause while other audio plays"
+  on. It counted its own audio as other audio playing; it now only pauses for sound from other apps.
+
 ## 1.1.5
 
 - The menu-bar popover no longer resizes or jumps while you talk. Every part of it now has a fixed

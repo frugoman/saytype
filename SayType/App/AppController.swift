@@ -307,27 +307,43 @@ final class AppController: ObservableObject {
             if mediaPlaying { mediaPlaying = false; refresh() }
             return
         }
-        let playing = Self.isOutputDeviceBusy()
+        let playing = Self.isOtherAudioPlaying()
         if playing != mediaPlaying {
             mediaPlaying = playing
             refresh()
         }
     }
 
-    /// True when any app is playing through the default output device (video, music, calls).
-    private static func isOutputDeviceBusy() -> Bool {
-        var device = AudioDeviceID(0)
-        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+    /// True when another app is playing audio (video, music, calls).
+    ///
+    /// Asks macOS which processes are producing output and ignores SayType itself. The old check ("is the
+    /// output device running?") counted SayType's own sounds and audio engine as "other audio playing", so
+    /// with "pause while audio plays" on it paused itself, the device went quiet, it resumed, and so on
+    /// every few seconds.
+    private static func isOtherAudioPlaying() -> Bool {
+        let me = ProcessInfo.processInfo.processIdentifier
+        let system = AudioObjectID(kAudioObjectSystemObject)
+        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList,
                                               mScope: kAudioObjectPropertyScopeGlobal,
                                               mElement: kAudioObjectPropertyElementMain)
-        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &device) == noErr
-        else { return false }
-        var running: UInt32 = 0
-        size = UInt32(MemoryLayout<UInt32>.size)
-        addr.mSelector = kAudioDevicePropertyDeviceIsRunningSomewhere
-        guard AudioObjectGetPropertyData(device, &addr, 0, nil, &size, &running) == noErr else { return false }
-        return running != 0
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(system, &addr, 0, nil, &size) == noErr, size > 0 else { return false }
+        var processes = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(system, &addr, 0, nil, &size, &processes) == noErr else { return false }
+
+        func value<T>(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, _ initial: T) -> T? {
+            var a = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal,
+                                               mElement: kAudioObjectPropertyElementMain)
+            var v = initial
+            var s = UInt32(MemoryLayout<T>.size)
+            return AudioObjectGetPropertyData(object, &a, 0, nil, &s, &v) == noErr ? v : nil
+        }
+        for process in processes {
+            guard value(process, kAudioProcessPropertyIsRunningOutput, UInt32(0)) == 1,
+                  let pid = value(process, kAudioProcessPropertyPID, pid_t(0)), pid != me else { continue }
+            return true
+        }
+        return false
     }
 
     // MARK: - Transcription
