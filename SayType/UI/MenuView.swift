@@ -18,7 +18,7 @@ struct MenuView: View {
         }
         .padding(theme.space(16))
         .frame(width: 320)
-        .background(PlayBackdrop())
+        .background(PlayBackdrop(animated: false))
         .playStyle()
         .playAnimation(value: controller.lastTranscript)
         .playAnimation(value: history.entries.count)

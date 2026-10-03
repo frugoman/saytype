@@ -296,6 +296,9 @@ struct PlayChip: View {
 
 struct PlayBackdrop: View {
     @ObservedObject private var theme = Theme.shared
+    /// The menu-bar popover passes false: a continuously redrawn background there kept re-laying out the
+    /// popover and made it wobble, and it burned CPU for a window that is open for a few seconds.
+    var animated = true
 
     private struct Shape {
         enum Kind { case circle, ring, square, triangle, squiggle }
@@ -315,7 +318,7 @@ struct PlayBackdrop: View {
         ZStack {
             LinearGradient(colors: [theme.canvasTop, theme.canvasBottom], startPoint: .top, endPoint: .bottom)
             if theme.shapes {
-                TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !(theme.animations && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion))) { timeline in
+                TimelineView(.animation(minimumInterval: 1.0 / 12, paused: !(animated && theme.animations && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion))) { timeline in
                     Canvas { context, size in
                         let t = timeline.date.timeIntervalSinceReferenceDate
                         for s in Self.shapes {

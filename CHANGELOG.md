@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+
+- Fixed the menu-bar popover wobbling: its background no longer animates (it kept re-laying out the
+  popover). The drifting shapes in the other windows are also lighter on the CPU.
+
 ## 1.1.2
 
 - Fixed a crash when the microphone started while the input device was changing (switching
