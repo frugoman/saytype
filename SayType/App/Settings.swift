@@ -201,11 +201,21 @@ let supportedLanguages: [(code: String, name: String)] = [
     ("sv", "Swedish"), ("th", "Thai"), ("tr", "Turkish"), ("uk", "Ukrainian"), ("vi", "Vietnamese"),
 ]
 
-/// Languages the AI backend can write in ("Output language"), by English name.
-let outputLanguages: [String] = [
-    "English", "Spanish", "Portuguese", "French", "German", "Italian", "Dutch", "Japanese", "Chinese",
-    "Korean", "Russian", "Hindi", "Arabic", "Polish", "Turkish", "Swedish", "Ukrainian",
+/// Languages the AI backend can be asked to write in ("Write in"), with their locale codes.
+let outputLanguages: [(name: String, code: String)] = [
+    ("English", "en"), ("Spanish", "es"), ("Portuguese", "pt"), ("French", "fr"), ("German", "de"),
+    ("Italian", "it"), ("Dutch", "nl"), ("Japanese", "ja"), ("Chinese", "zh"), ("Korean", "ko"),
+    ("Russian", "ru"), ("Hindi", "hi"), ("Arabic", "ar"), ("Polish", "pl"), ("Turkish", "tr"),
+    ("Swedish", "sv"), ("Ukrainian", "uk"),
 ]
+
+/// Speech languages an engine can really transcribe. Anything else is not offered, so it can't be picked by mistake.
+func speechLanguages(for engine: STTEngineKind) -> [(code: String, name: String)] {
+    switch engine {
+    case .parakeet: return supportedLanguages.filter { $0.code == "auto" || parakeetLanguages.contains($0.code) }
+    case .whisperKit, .localServer: return supportedLanguages
+    }
+}
 
 /// Languages Parakeet v3 can transcribe. For any other language SayType uses Whisper instead.
 let parakeetLanguages: Set<String> = [

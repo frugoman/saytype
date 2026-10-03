@@ -145,29 +145,20 @@ struct SpeechToTextSettings: View {
                     ForEach(STTEngineKind.allCases) { Text($0.label).tag($0.rawValue) }
                 }
                 Picker("Language", selection: $language) {
-                    ForEach(supportedLanguages, id: \.code) { Text($0.name).tag($0.code) }
+                    ForEach(speechLanguages(for: STTEngineKind(rawValue: engine) ?? .whisperKit), id: \.code) { Text($0.name).tag($0.code) }
                 }
                 Toggle("Tuned for developers (knows common code terms)", isOn: $codeContext)
-                Toggle("Translate everything to English", isOn: $translate)
-                    .disabled(engine == STTEngineKind.parakeet.rawValue)
-            } footer: {
-                VStack(alignment: .leading, spacing: 4) {
-                    if engine == STTEngineKind.parakeet.rawValue {
-                        if language != "auto", !parakeetLanguages.contains(language) {
-                            Text("Parakeet doesn't support \(languageName(language)). SayType uses Whisper for it instead\(controller.fallbackMessage.isEmpty ? "." : ": \(controller.fallbackMessage)")")
-                                .foregroundStyle(.orange)
-                        } else if language == "auto" {
-                            Text("With Auto-detect, Parakeet only recognises its 25 European languages. For Japanese, Chinese, Korean, Arabic, Hindi and others, choose the language above or use Whisper.")
-                        } else {
-                            Text("Parakeet transcribes 25 European languages. Choose another language above and SayType switches to Whisper for it automatically.")
-                        }
-                    } else {
-                        Text("Translation needs a multilingual Whisper model (not the English-only ones).")
-                    }
+                if engine != STTEngineKind.parakeet.rawValue {
+                    Toggle("Translate everything to English", isOn: $translate)
                 }
-                .font(.caption).foregroundStyle(.secondary)
+            } footer: {
+                Text(engine == STTEngineKind.parakeet.rawValue
+                     ? "Parakeet covers these 25 European languages and detects which one you speak. For Japanese, Chinese, Korean, Arabic, Hindi and others, switch the engine to Whisper."
+                     : "Translation needs a multilingual Whisper model (not the English-only ones).")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            .onChange(of: language) { controller.prepareFallbackIfNeeded() }
+            .onChange(of: engine) { fixLanguageForEngine() }
+            .onAppear(perform: fixLanguageForEngine)
 
             if engine == STTEngineKind.parakeet.rawValue {
                 Section {
@@ -213,6 +204,13 @@ struct SpeechToTextSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// Parakeet can't do every language; if the saved one isn't offered any more, fall back to English.
+    private func fixLanguageForEngine() {
+        let allowed = speechLanguages(for: STTEngineKind(rawValue: engine) ?? .whisperKit)
+        if !allowed.contains(where: { $0.code == language }) { language = "en" }
+        if engine == STTEngineKind.parakeet.rawValue { translate = false }
     }
 
     @ViewBuilder private var loadStatus: some View {

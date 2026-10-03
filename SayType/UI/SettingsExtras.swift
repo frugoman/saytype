@@ -134,7 +134,7 @@ struct ProfileSettings: View {
                         }
                         Picker("Language", selection: Binding(get: { profile.language ?? "" }, set: { profile.language = $0.isEmpty ? nil : $0 })) {
                             Text("Same as general").tag("")
-                            ForEach(supportedLanguages, id: \.code) { Text($0.name).tag($0.code) }
+                            ForEach(speechLanguages(for: STTEngineKind(rawValue: Pref.defaults.string(forKey: Pref.sttEngine) ?? "") ?? .whisperKit), id: \.code) { Text($0.name).tag($0.code) }
                         }
                         Toggle("Remove the final period", isOn: $profile.stripTrailingPeriod)
                         TextField("Extra words for this app", text: $profile.extraTerms)
@@ -201,6 +201,9 @@ struct AISettings: View {
     @State private var testResult = ""
     @State private var testing = false
 
+    /// Only languages the selected AI backend can really write in.
+    private var writable: [(name: String, code: String)] { AIService.current.writableLanguages }
+
     var body: some View {
         Form {
             Section {
@@ -209,12 +212,12 @@ struct AISettings: View {
                 }
                 Picker("Write in", selection: $outputLanguage) {
                     Text("The language I speak").tag("")
-                    ForEach(outputLanguages, id: \.self) { Text($0).tag($0) }
+                    ForEach(writable, id: \.name) { Text($0.name).tag($0.name) }
                 }
             } header: {
                 Text("Dictation")
             } footer: {
-                Text("Cleanup removes “um”s, fixes punctuation and, with Polish, tidies wording. It adds a moment before text appears. Writing in another language translates what you say.")
+                Text("Cleanup removes “um”s, fixes punctuation and, with Polish, tidies wording. It adds a moment before text appears. Writing in another language translates what you say, and only lists languages the selected AI model supports.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -246,6 +249,12 @@ struct AISettings: View {
             }
         }
         .formStyle(.grouped)
+        .onChange(of: backend) { resetUnsupportedLanguage() }
+        .onAppear(perform: resetUnsupportedLanguage)
+    }
+
+    private func resetUnsupportedLanguage() {
+        if !outputLanguage.isEmpty, !writable.contains(where: { $0.name == outputLanguage }) { outputLanguage = "" }
     }
 
     private func test() {

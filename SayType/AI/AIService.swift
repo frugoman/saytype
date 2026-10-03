@@ -44,6 +44,19 @@ struct AIService {
 
     var isAvailable: Bool { unavailableReason == nil }
 
+    /// Languages this backend can write in. Apple's on-device model supports a fixed set; for a local server
+    /// we can't know, so everything is offered.
+    var writableLanguages: [(name: String, code: String)] {
+        guard backend == .apple else { return outputLanguages }
+        #if canImport(FoundationModels)
+        if #available(macOS 26.0, *) {
+            let model = SystemLanguageModel.default
+            return outputLanguages.filter { model.supportsLocale(Locale(identifier: $0.code)) }
+        }
+        #endif
+        return []
+    }
+
     func complete(system: String, user: String, timeout: TimeInterval = 10) async throws -> String {
         if let reason = unavailableReason { throw AIError.unavailable(reason) }
         return try await withThrowingTaskGroup(of: String.self) { group in
