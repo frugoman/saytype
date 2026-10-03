@@ -56,6 +56,11 @@ xcodebuild -exportArchive \
 APP="$BUILD/export/SayType.app"
 codesign --verify --deep --strict "$APP"
 
+# The menu-bar popover jumps whenever its height depends on state. This lays the menu out in every state
+# and stops the release if any height differs.
+echo "==> Checking the menu never changes height"
+"$APP/Contents/MacOS/SayType" --check-menu 2>/dev/null
+
 echo "==> Notarizing (usually a few minutes)"
 ditto -c -k --keepParent "$APP" "$BUILD/notarize.zip"
 RESULT=$(xcrun notarytool submit "$BUILD/notarize.zip" --key "$KEY_PATH" --key-id "$KEY_ID" --issuer "$ISSUER_ID" \

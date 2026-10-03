@@ -7,7 +7,46 @@ import SwiftUI
 enum UISnapshot {
     typealias Item = (name: String, view: AnyView, size: CGSize)
 
-    static var active: Bool { CommandLine.arguments.contains("--snapshot") }
+    static var active: Bool { CommandLine.arguments.contains("--snapshot") || checkingMenu }
+    static var checkingMenu: Bool { CommandLine.arguments.contains("--check-menu") }
+
+    /// `SayType --check-menu`: lays the menu out in every state and exits 1 if any height differs.
+    /// A changing height makes the menu-bar popover resize and jump while you talk; the release script runs this.
+    static func checkMenuHeight() {
+        Task { @MainActor in
+            let c = AppController.shared
+            let long = String(repeating: "This is a long dictation that goes on and on. ", count: 12)
+            let statuses: [(String, AppController.Status)] = [
+                ("loading", .loading(0.4, "Downloading a very long model name that will not fit on one line…")),
+                ("idle", .idle), ("listening", .listening), ("hearing", .hearing), ("transcribing", .transcribing),
+                ("speaking", .speaking), ("disabled", .disabled), ("needsMic", .needsMicPermission),
+                ("needsAX", .needsAccessibility), ("error", .error(long)),
+            ]
+            let hosting = NSHostingView(rootView: attach(MenuView()))
+            let window = NSWindow(contentRect: CGRect(x: -6000, y: -6000, width: 320, height: 600),
+                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            window.contentView = hosting
+            var heights: [String: CGFloat] = [:]
+            for (name, status) in statuses {
+                for (textName, text) in [("empty", ""), ("short", "Hi"), ("long", long)] {
+                    for tts in ["", "Loading voice… " + long] {
+                        c.applyMenuCheckState(status: status, lastTranscript: text, ttsStatus: tts)
+                        try? await Task.sleep(for: .milliseconds(30))
+                        hosting.layoutSubtreeIfNeeded()
+                        heights["\(name)/\(textName)/\(tts.isEmpty ? "-" : "tts")"] = hosting.fittingSize.height.rounded()
+                    }
+                }
+            }
+            let distinct = Set(heights.values)
+            if distinct.count == 1 {
+                print("menu height OK: \(distinct.first!) pt in \(heights.count) states")
+                exit(0)
+            }
+            print("menu height CHANGES between states (the popover will jump):")
+            for (key, h) in heights.sorted(by: { $0.key < $1.key }) { print("  \(h)  \(key)") }
+            exit(1)
+        }
+    }
 
     private static func attach<V: View>(_ view: V) -> AnyView {
         let c = AppController.shared
@@ -21,7 +60,7 @@ enum UISnapshot {
             (name: "settings-\(pane.rawValue)", view: attach(SettingsView()), size: CGSize(width: 820, height: 640))
         }
         result.append((name: "menu", view: attach(MenuView().padding(1).background(Color(nsColor: .windowBackgroundColor))),
-                       size: CGSize(width: 320, height: 512)))
+                       size: CGSize(width: 320, height: 620)))
         result += ExtraSnapshots.items().map { ($0.name, attach($0.view), $0.size) }
         return result
     }

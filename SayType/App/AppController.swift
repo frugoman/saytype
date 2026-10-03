@@ -849,6 +849,15 @@ final class AppController: ObservableObject {
         ttsStatus = ""
     }
 
+    /// Forces a state for `--check-menu`, which checks the menu's height never changes. Nothing else calls it.
+    func applyMenuCheckState(status: Status, lastTranscript: String, ttsStatus: String) {
+        guard UISnapshot.checkingMenu else { return }
+        sttName = "Whisper · Large v3 Turbo"
+        self.status = status
+        self.lastTranscript = lastTranscript
+        self.ttsStatus = ttsStatus
+    }
+
     /// Puts the controller in a "ready and listening" look for screenshots. Only used by `--snapshot`.
     func prepareForSnapshot() {
         guard UISnapshot.active else { return }

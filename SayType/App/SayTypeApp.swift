@@ -29,6 +29,10 @@ struct SayTypeApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if UISnapshot.checkingMenu {
+            UISnapshot.checkMenuHeight()
+            return
+        }
         if UISnapshot.active {
             UISnapshot.runIfRequested()
             return

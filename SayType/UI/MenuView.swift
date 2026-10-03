@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// The menu-bar popover.
+///
+/// IMPORTANT: its height must never depend on state. MenuBarExtra resizes (and visibly jumps) its window
+/// whenever the content's height changes, and the status changes many times a second while you talk.
+/// Every section has a fixed height, text is line-limited with reserved space, and nothing appears or
+/// disappears based on live state. `SayType --check-menu` (run by scripts/brew-release.sh) fails the
+/// release if any state renders at a different height.
 struct MenuView: View {
     @EnvironmentObject var controller: AppController
     @EnvironmentObject var focus: FocusMonitor
@@ -11,18 +18,19 @@ struct MenuView: View {
         VStack(spacing: theme.space(14)) {
             header
             statusCard
-            if !controller.lastTranscript.isEmpty { lastTyped }
-            if history.entries.count > 1 { recent }
+            lastTyped
+            recent
             shortcuts
             footer
         }
         .padding(theme.space(16))
         .frame(width: 320)
+        .fixedSize(horizontal: false, vertical: true)
         .background(PlayBackdrop(animated: false))
         .playStyle()
-        .playAnimation(value: controller.lastTranscript)
-        .playAnimation(value: history.entries.count)
     }
+
+    static let statusHeight: CGFloat = 66
 
     // MARK: Header
 
@@ -64,36 +72,36 @@ struct MenuView: View {
             HStack(spacing: theme.space(14)) {
                 StatusOrb(look: look, level: controller.micLevelDB, active: controller.status == .hearing)
                 VStack(alignment: .leading, spacing: 4) { statusBody }
-                Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: Self.statusHeight, alignment: .leading)
+                    .clipped()
             }
+            .frame(height: Self.statusHeight)
         }
-        .playAnimation(value: statusKey)
     }
-
-    private var statusKey: String { "\(controller.status)" + (focus.state == .secure ? "s" : "") }
 
     @ViewBuilder private var statusBody: some View {
         switch controller.status {
         case .loading(let fraction, let message):
-            Text("Warming up").font(.system(size: 15, weight: .bold))
-            Text(message).font(.system(size: 12)).foregroundStyle(theme.inkSoft).lineLimit(2)
+            Text("Warming up").font(.system(size: 15, weight: .bold)).lineLimit(1)
+            Text(message).font(.system(size: 12)).foregroundStyle(theme.inkSoft).lineLimit(1)
             ProgressView(value: fraction).tint(theme.bold(.blue))
         case .needsAccessibility:
-            Text("One more step").font(.system(size: 15, weight: .bold))
-            Text("SayType needs Accessibility access to type into the focused text field.")
-                .font(.system(size: 12)).foregroundStyle(theme.inkSoft).fixedSize(horizontal: false, vertical: true)
-            Button("Finish Setup…") { OnboardingWindow.shared.show() }.buttonStyle(.playPrimary)
+            Text("Needs Accessibility").font(.system(size: 15, weight: .bold)).lineLimit(1)
+            Text("To type into text fields.").font(.system(size: 12)).foregroundStyle(theme.inkSoft).lineLimit(1)
+            Button("Finish Setup…") { OnboardingWindow.shared.show() }.controlSize(.small)
         case .needsMicPermission:
-            Text("One more step").font(.system(size: 15, weight: .bold))
-            Text("SayType needs microphone access.").font(.system(size: 12)).foregroundStyle(theme.inkSoft)
-            Button("Finish Setup…") { OnboardingWindow.shared.show() }.buttonStyle(.playPrimary)
+            Text("Needs the microphone").font(.system(size: 15, weight: .bold)).lineLimit(1)
+            Text("To hear you.").font(.system(size: 12)).foregroundStyle(theme.inkSoft).lineLimit(1)
+            Button("Finish Setup…") { OnboardingWindow.shared.show() }.controlSize(.small)
         case .error(let message):
-            Text("Something went wrong").font(.system(size: 15, weight: .bold))
-            Text(message).font(.system(size: 12)).foregroundStyle(theme.bold(.peach)).lineLimit(3)
-            Button("Retry") { Task { await controller.reloadSpeechToText() } }
+            Text("Something went wrong").font(.system(size: 15, weight: .bold)).lineLimit(1)
+            Text(message).font(.system(size: 12)).foregroundStyle(theme.bold(.peach)).lineLimit(1).help(message)
+            Button("Retry") { Task { await controller.reloadSpeechToText() } }.controlSize(.small)
         default:
-            Text(headline).font(.system(size: 15, weight: .bold))
-            Text(statusText).font(.system(size: 12)).foregroundStyle(theme.inkSoft).fixedSize(horizontal: false, vertical: true)
+            Text(headline).font(.system(size: 15, weight: .bold)).lineLimit(1)
+            Text(statusText).font(.system(size: 12)).foregroundStyle(theme.inkSoft)
+                .lineLimit(2, reservesSpace: true)
         }
     }
 
@@ -126,20 +134,29 @@ struct MenuView: View {
 
     private var lastTyped: some View {
         PlaySection("Last typed", tint: .butter) {
-            Text(controller.lastTranscript)
+            Text(controller.lastTranscript.isEmpty ? "Nothing yet. Click into a text field and talk." : controller.lastTranscript)
                 .font(.system(size: 13.5))
-                .lineLimit(4)
+                .foregroundStyle(controller.lastTranscript.isEmpty ? theme.inkSoft : theme.ink)
+                .lineLimit(2, reservesSpace: true)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
                 .textSelection(.enabled)
         }
     }
 
     private var recent: some View {
         PlaySection("Recent", tint: .blue) {
+            // Always three rows (empty ones are invisible), so a new dictation never changes the height.
+            let entries = Array(history.entries.dropFirst().prefix(3))
             VStack(spacing: 6) {
-                ForEach(history.entries.dropFirst().prefix(3)) { entry in
-                    RecentRow(text: entry.text) {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(entry.text, forType: .string)
+                ForEach(0..<3, id: \.self) { i in
+                    if i < entries.count {
+                        RecentRow(text: entries[i].text) {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(entries[i].text, forType: .string)
+                        }
+                    } else {
+                        RecentRow(text: i == 0 ? "Earlier dictations show up here" : " ", action: {}).opacity(i == 0 ? 0.5 : 0)
+                            .disabled(true)
                     }
                 }
             }
@@ -150,18 +167,15 @@ struct MenuView: View {
 
     private var shortcuts: some View {
         PlaySection(tint: .lavender) {
+            // One fixed row: the voice's loading message takes the model's place while it shows.
             HStack(spacing: 8) {
-                Image(systemName: "waveform").foregroundStyle(theme.bold(.lavender))
-                Text(controller.sttName).font(.system(size: 12.5, weight: .semibold))
+                Image(systemName: controller.ttsStatus.isEmpty ? "waveform" : "speaker.wave.2")
+                    .foregroundStyle(theme.bold(.lavender))
+                Text(controller.ttsStatus.isEmpty ? controller.sttName : controller.ttsStatus)
+                    .font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
                 Spacer()
             }
-            if !controller.ttsStatus.isEmpty {
-                HStack(spacing: 8) {
-                    Image(systemName: "speaker.wave.2").foregroundStyle(theme.bold(.lavender))
-                    Text(controller.ttsStatus).font(.system(size: 12.5, weight: .semibold))
-                    Spacer()
-                }
-            }
+            .frame(height: 18)
             VStack(spacing: 7) {
                 shortcutRow(ShortcutAction.toggleDictation.shortcut.label, "on / off")
                 shortcutRow(ShortcutAction.pushToTalk.shortcut.label, "push to talk")

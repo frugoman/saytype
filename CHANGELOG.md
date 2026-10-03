@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.5
+
+- The menu-bar popover no longer resizes or jumps while you talk. Every part of it now has a fixed
+  height, and each release checks that the menu is the same height in every state.
+
 ## 1.1.4
 
 - The floating mic badge and the menu now always show the real state. A short noise (a cough, a click)
