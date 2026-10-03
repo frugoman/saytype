@@ -84,6 +84,7 @@ targets:
       - SayType/Profiles
       - SayType/AI/CleanupPrompts.swift
       - SayType/Automation/AutomationCommand.swift
+      - SayType/Automation/CommandAlias.swift
       - SayType/App/Settings.swift
       - SayType/Transcribe/TranscriptFormats.swift
       - SayType/Transcribe/AudioDecoder.swift

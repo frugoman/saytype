@@ -1,5 +1,5 @@
 #!/bin/bash
-# saytype: control the SayType app from the command line.
+# saytype: control the SayType app from the command line (the name can be changed in Settings).
 # Talks to the app through its saytype:// URL scheme. No dependencies, bash 3.2 compatible.
 #
 # Exit codes: 0 success, 1 failed (app could not be reached, no transcript, file missing),
@@ -7,10 +7,13 @@
 
 VERSION="1.1.0"
 SUPPORT_DIR="$HOME/Library/Application Support/SayType"
+# The command can be renamed in SayType's Settings (e.g. "alfred toggle"): the app links the script under
+# the name you choose, and everything printed below uses whatever name it was run as.
+NAME="$(basename "$0")"
 
 usage() {
-  cat <<'USAGE'
-Usage: saytype <command> [arguments]
+  sed "s/@NAME@/$NAME/g" <<'USAGE'
+Usage: @NAME@ <command> [arguments]
 
 Dictation
   toggle                      turn dictation on or off
@@ -41,16 +44,16 @@ if it is not running. Everything stays on this Mac.
 Exit codes: 0 success, 1 failed, 2 usage error.
 
 Examples
-  saytype toggle
-  saytype speak "Build finished"
-  saytype transcribe ~/Recordings/interview.m4a
-  saytype last | pbcopy
+  @NAME@ toggle
+  @NAME@ speak "Build finished"
+  @NAME@ transcribe ~/Recordings/interview.m4a
+  @NAME@ last | pbcopy
 USAGE
 }
 
 die_usage() {
-  echo "saytype: $1" >&2
-  echo "Try 'saytype help'." >&2
+  echo "$NAME: $1" >&2
+  echo "Try '$NAME help'." >&2
   exit 2
 }
 
@@ -61,7 +64,7 @@ urlencode() {
 
 send() {
   if ! open -g "$1"; then
-    echo "saytype: could not open SayType. Is it installed?" >&2
+    echo "$NAME: could not open SayType. Is it installed?" >&2
     exit 1
   fi
 }
@@ -110,7 +113,7 @@ case "$cmd" in
     [ $# -eq 1 ] || die_usage "transcribe needs one file"
     file="$1"
     if [ ! -f "$file" ]; then
-      echo "saytype: no such file: $file" >&2
+      echo "$NAME: no such file: $file" >&2
       exit 1
     fi
     case "$file" in
@@ -135,7 +138,7 @@ case "$cmd" in
   last)
     [ $# -eq 0 ] || die_usage "'last' takes no arguments"
     if [ ! -r "$SUPPORT_DIR/last-transcript.txt" ]; then
-      echo "saytype: no transcript yet" >&2
+      echo "$NAME: no transcript yet" >&2
       exit 1
     fi
     printf '%s\n' "$(cat "$SUPPORT_DIR/last-transcript.txt")"
@@ -152,7 +155,7 @@ case "$cmd" in
     ;;
 
   version|--version|-v)
-    echo "saytype $VERSION"
+    echo "$NAME $VERSION"
     ;;
 
   help|--help|-h)

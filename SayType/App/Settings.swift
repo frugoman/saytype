@@ -115,6 +115,8 @@ enum Pref {
     static let listenMode = "listenMode"
     static let soundFeedback = "soundFeedback"
     static let showOverlay = "showOverlay"
+    static let cliCommandName = "cliCommandName"
+    static let cliCommandFolder = "cliCommandFolder"
     static let showCaretIndicator = "showCaretIndicator"
     static let historyEnabled = "historyEnabled"
     static let voiceCommands = "voiceCommands"
