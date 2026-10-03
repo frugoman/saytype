@@ -105,6 +105,16 @@ struct AppearanceSettings: View {
             PlaySection("Layout and motion", tint: .mint) {
                 Toggle("Sidebar on the left (off puts tabs along the top)", isOn: $theme.sidebar)
                 Toggle("Floating shapes in the background", isOn: $theme.shapes)
+                if theme.shapes {
+                    LabeledContent("Shape strength") {
+                        HStack {
+                            Text("Subtle").font(.caption).foregroundStyle(theme.inkSoft)
+                            Slider(value: $theme.shapeStrength, in: 0.15...1)
+                            Text("Bold").font(.caption).foregroundStyle(theme.inkSoft)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 Toggle("Animations", isOn: $theme.animations)
             } footer: {
                 Text("Animations also turn off automatically when macOS \"Reduce motion\" is on.")

@@ -87,6 +87,7 @@ struct PlaySection<Content: View, Header: View, Footer: View>: View {
                 .background(
                     RoundedRectangle(cornerRadius: theme.radius(22), style: .continuous).fill(theme.card)
                 )
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: theme.radius(22), style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: theme.radius(22), style: .continuous).strokeBorder(theme.cardStroke)
                 )
@@ -348,7 +349,9 @@ struct PlayBackdrop: View {
                         }
                     }
                 }
-                .blur(radius: 0.5)
+                // Soft, blurred blobs: you can tell something is there without it pulling your eye.
+                .blur(radius: 26)
+                .opacity(theme.shapeStrength)
             }
         }
         .ignoresSafeArea()

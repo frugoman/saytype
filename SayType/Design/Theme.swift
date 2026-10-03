@@ -168,6 +168,8 @@ final class Theme: ObservableObject {
     @Published var fontStyle: FontStyle { didSet { save() } }
     @Published var animations: Bool { didSet { save() } }
     @Published var shapes: Bool { didSet { save() } }
+    /// How visible the blurred background shapes are (0.15 barely there … 1 bold).
+    @Published var shapeStrength: Double { didSet { save() } }
     @Published var sidebar: Bool { didSet { save() } }
 
     private let d = UserDefaults.standard
@@ -185,6 +187,7 @@ final class Theme: ObservableObject {
         fontStyle = FontStyle(rawValue: d.string(forKey: "theme.font") ?? "") ?? .rounded
         animations = d.object(forKey: "theme.animations") as? Bool ?? true
         shapes = d.object(forKey: "theme.shapes") as? Bool ?? true
+        shapeStrength = d.object(forKey: "theme.shapeStrength") as? Double ?? 0.5
         sidebar = d.object(forKey: "theme.sidebar") as? Bool ?? true
         loading = false
     }
@@ -202,12 +205,13 @@ final class Theme: ObservableObject {
         d.set(fontStyle.rawValue, forKey: "theme.font")
         d.set(animations, forKey: "theme.animations")
         d.set(shapes, forKey: "theme.shapes")
+        d.set(shapeStrength, forKey: "theme.shapeStrength")
         d.set(sidebar, forKey: "theme.sidebar")
     }
 
     func resetToDefaults() {
         palette = .candy; accentID = .coral; appearance = .system; corners = .soft; density = .cozy
-        fontStyle = .rounded; animations = true; shapes = true; sidebar = true
+        fontStyle = .rounded; animations = true; shapes = true; shapeStrength = 0.5; sidebar = true
     }
 
     // MARK: Colours
@@ -221,7 +225,8 @@ final class Theme: ObservableObject {
     var accent: Color { accentID == .custom ? customAccent : Color(hex: accentID.hex ?? 0xFF6B5E) }
     var canvasTop: Color { Color(light: Color(hex: palette.canvas.top), dark: Color(hex: 0x16131F)) }
     var canvasBottom: Color { Color(light: Color(hex: palette.canvas.bottom), dark: Color(hex: 0x1B1827)) }
-    var card: Color { Color(light: .white.opacity(0.82), dark: Color.white.opacity(0.07)) }
+    /// Cards are nearly solid so the background behind them never competes with the content.
+    var card: Color { Color(light: .white.opacity(0.9), dark: Color(hex: 0x262232, opacity: 0.94)) }
     var cardStroke: Color { Color(light: Color(hex: 0x2A2733, opacity: 0.07), dark: .white.opacity(0.10)) }
     var ink: Color { Color(light: Color(hex: 0x2A2733), dark: Color(hex: 0xF3F0FA)) }
     var inkSoft: Color { Color(light: Color(hex: 0x2A2733, opacity: 0.62), dark: Color(hex: 0xF3F0FA, opacity: 0.62)) }
