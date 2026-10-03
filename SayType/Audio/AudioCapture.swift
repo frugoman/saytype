@@ -8,6 +8,7 @@ final class AudioCapture {
 
     private let engine = AVAudioEngine()
     private var converter: AVAudioConverter?
+    private var converterInput: AVAudioFormat?
     private let targetFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                                              sampleRate: AudioCapture.sampleRate,
                                              channels: 1, interleaved: false)!
@@ -75,14 +76,25 @@ final class AudioCapture {
             throw NSError(domain: "SayType", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "No microphone available"])
         }
-        converter = AVAudioConverter(from: inputFormat, to: targetFormat)
+        converter = nil
+        converterInput = nil
         lastSampleAt = Date()
 
-        input.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
+        // A tap left over from an interrupted restart would make installTap throw (and abort the app).
+        input.removeTap(onBus: 0)
+        // nil format = whatever the input device delivers right now. Passing a format read earlier crashed
+        // with "sampleRate != inputHWFormat.sampleRate" when the device changed in between (headset, AirPods,
+        // playback starting). convert() builds its converter from the real buffer format instead.
+        input.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
             self?.convert(buffer)
         }
         engine.prepare()
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
         isRunning = true
         log.info("Mic started")
     }
@@ -96,6 +108,11 @@ final class AudioCapture {
     }
 
     private func convert(_ buffer: AVAudioPCMBuffer) {
+        guard buffer.format.sampleRate > 0, buffer.format.channelCount > 0 else { return }
+        if converter == nil || converterInput != buffer.format {
+            converter = AVAudioConverter(from: buffer.format, to: targetFormat)
+            converterInput = buffer.format
+        }
         guard let converter else { return }
         let ratio = targetFormat.sampleRate / buffer.format.sampleRate
         let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 32
