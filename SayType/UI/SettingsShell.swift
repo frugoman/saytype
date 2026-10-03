@@ -136,6 +136,7 @@ struct SettingsView: View {
             .padding(14)
         }
         .frame(width: 208)
+        .background(theme.canvasTop.opacity(0.94))
         .background(theme.card.opacity(0.6))
         .overlay(alignment: .trailing) { Rectangle().fill(theme.cardStroke).frame(width: 1) }
     }

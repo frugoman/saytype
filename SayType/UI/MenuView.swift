@@ -200,12 +200,12 @@ struct MenuView: View {
                 Text("More")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(theme.ink)
-                    .padding(.horizontal, 14).padding(.vertical, 7)
-                    .background(Capsule(style: .continuous).fill(theme.ink.opacity(0.07)))
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .fixedSize()
+            .padding(.horizontal, 14).padding(.vertical, 7)
+            .background(Capsule(style: .continuous).fill(theme.ink.opacity(0.07)))
             Spacer()
             Button("Quit") { NSApp.terminate(nil) }
         }
