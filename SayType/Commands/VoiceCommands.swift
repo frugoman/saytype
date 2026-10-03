@@ -21,13 +21,24 @@ struct VoiceCommandOptions: Equatable {
 enum VoiceCommands {
     /// Phrases that only count when they are the whole utterance, so ordinary sentences are safe.
     private static let standalone: [(phrase: [String], action: DictationAction)] = [
-        (["undo", "that"], .undo),
-        (["select", "all"], .selectAll),
-        (["press", "enter"], .pressEnter),
-        (["press", "return"], .pressEnter),
-        (["new", "line"], .newLine),
-        (["newline"], .newLine),
-        (["new", "paragraph"], .newParagraph),
+        (["undo", "that"], .undo), (["undo", "it"], .undo), (["undo"], .undo),
+        (["select", "all"], .selectAll), (["select", "everything"], .selectAll),
+        (["press", "enter"], .pressEnter), (["press", "return"], .pressEnter),
+        (["hit", "enter"], .pressEnter), (["hit", "return"], .pressEnter),
+        (["enter"], .pressEnter), (["return"], .pressEnter),
+        (["new", "line"], .newLine), (["newline"], .newLine), (["next", "line"], .newLine),
+        (["line", "break"], .newLine),
+        (["new", "paragraph"], .newParagraph), (["next", "paragraph"], .newParagraph),
+        // "scratch that" is often heard as "scratch there" or "scratch this".
+        (["scratch", "that"], .deleteLast), (["scratch", "there"], .deleteLast), (["scratch", "this"], .deleteLast),
+        (["delete", "that"], .deleteLast), (["delete", "this"], .deleteLast), (["erase", "that"], .deleteLast),
+        (["remove", "that"], .deleteLast), (["strike", "that"], .deleteLast), (["cancel", "that"], .deleteLast),
+    ]
+
+    /// Filler and politeness words that don't stop a command from counting ("uh, press enter").
+    private static let fillers: Set<String> = [
+        "uh", "um", "uhm", "umm", "er", "erm", "ah", "eh", "hm", "hmm", "mm", "mhm", "oh",
+        "okay", "ok", "so", "please", "now", "and", "then",
     ]
 
     /// Phrases recognised anywhere in the utterance.
@@ -75,7 +86,11 @@ enum VoiceCommands {
         let normalized = words.map(normalize)
 
         if options.commands {
-            for entry in standalone where normalized == entry.phrase { return [entry.action] }
+            // Ignore fillers at either end, so "Uh, press enter." still counts as the command.
+            var core = normalized[...]
+            while let first = core.first, fillers.contains(first) { core = core.dropFirst() }
+            while let last = core.last, fillers.contains(last) { core = core.dropLast() }
+            for entry in standalone where Array(core) == entry.phrase { return [entry.action] }
         }
 
         var actions: [DictationAction] = []

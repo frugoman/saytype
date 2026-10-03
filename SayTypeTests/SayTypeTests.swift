@@ -42,6 +42,8 @@ final class FilterTests: XCTestCase {
         XCTAssertNil(TranscriptFilter.clean("[BLANK_AUDIO]", prompt: nil))
         XCTAssertNil(TranscriptFilter.clean("Terms: GitHub, TypeScript", prompt: "Software dev. Terms: GitHub, TypeScript, JSON"))
         XCTAssertEqual(TranscriptFilter.clean("  Ship it  now. ", prompt: nil), "Ship it now.")
+        XCTAssertEqual(TranscriptFilter.clean("Ah, scratch there. (I'm not sure how to translate that)", prompt: nil), "Ah, scratch there.")
+        XCTAssertNil(TranscriptFilter.clean("(laughs)", prompt: nil))
     }
 }
 

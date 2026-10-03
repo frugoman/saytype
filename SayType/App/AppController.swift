@@ -439,14 +439,18 @@ final class AppController: ObservableObject {
                     TextInserter.postKey(36, flags: .maskShift); typedCount += 2
                 case .pressEnter:
                     TextInserter.postKey(36, flags: [])
+                    RecordingOverlay.shared.show(.message("↩ Enter"), hideAfter: 1.4)
                 case .undo:
                     TextInserter.postKey(6, flags: .maskCommand)
+                    RecordingOverlay.shared.show(.message("↶ Undo"), hideAfter: 1.4)
                 case .selectAll:
                     TextInserter.postKey(0, flags: .maskCommand)
+                    RecordingOverlay.shared.show(.message("Selected all"), hideAfter: 1.4)
                 case .deleteLast:
                     if let last = lastTyped, last.pid == target.pid, Date().timeIntervalSince(last.date) < 120, last.count > 0 {
                         for _ in 0..<min(last.count, 2000) { TextInserter.postKey(51, flags: []) }
                         lastTyped = nil
+                        RecordingOverlay.shared.show(.message("Scratched that"), hideAfter: 1.4)
                     } else {
                         NSSound.beep()
                     }

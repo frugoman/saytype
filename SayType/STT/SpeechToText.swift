@@ -42,7 +42,8 @@ enum TranscriptFilter {
 
     static func clean(_ raw: String, prompt: String?) -> String? {
         var text = raw
-            .replacingOccurrences(of: #"\[[A-Z_ ]+\]|\([a-z ]+\)"#, with: "", options: .regularExpression)
+            // Whisper sometimes adds annotations like "[MUSIC]", "(laughs)" or "(I'm not sure how to translate that)".
+            .replacingOccurrences(of: #"\[[^\]]{0,80}\]|\([^)]{0,100}\)"#, with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         while text.contains("  ") { text = text.replacingOccurrences(of: "  ", with: " ") }
         guard !text.isEmpty else { return nil }

@@ -15,6 +15,25 @@ final class VoiceCommandTests: XCTestCase {
         XCTAssertEqual(VoiceCommands.parse("New line.", options: on), [.newLine])
     }
 
+    func testFillersAroundACommandDontStopIt() {
+        XCTAssertEqual(VoiceCommands.parse("Uh press enter.", options: on), [.pressEnter])
+        XCTAssertEqual(VoiceCommands.parse("Uh undo that.", options: on), [.undo])
+        XCTAssertEqual(VoiceCommands.parse("Okay, so new line please", options: on), [.newLine])
+        XCTAssertEqual(VoiceCommands.parse("Hit enter", options: on), [.pressEnter])
+        XCTAssertEqual(VoiceCommands.parse("Enter.", options: on), [.pressEnter])
+    }
+
+    func testMisheardScratchStillWorks() {
+        XCTAssertEqual(VoiceCommands.parse("Ah, scratch there.", options: on), [.deleteLast])
+        XCTAssertEqual(VoiceCommands.parse("Scratch this", options: on), [.deleteLast])
+    }
+
+    func testSentencesContainingCommandWordsStayText() {
+        let sentence = "If I press enter it takes me to the tracks tab."
+        XCTAssertEqual(VoiceCommands.parse(sentence, options: on), [.text(sentence)])
+        XCTAssertEqual(VoiceCommands.parse("Press enter to continue", options: on), [.text("Press enter to continue")])
+    }
+
     func testStandaloneCommandsAreIgnoredInsideSentences() {
         XCTAssertEqual(VoiceCommands.parse("Please select all the items.", options: on), [.text("Please select all the items.")])
         XCTAssertEqual(VoiceCommands.parse("You can undo that change later.", options: on), [.text("You can undo that change later.")])
