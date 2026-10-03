@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- Fixed the menu-bar popover flickering open and closed (the mic badge window no longer animates).
+- History keeps only the most recent items: 10 by default, configurable in Settings → History.
+  Lowering the number deletes the older items.
+
 ## 1.1.0
 
 - Listening modes: hands-free (the default, as before), push-to-talk (hold ⌃⌥Space and release
